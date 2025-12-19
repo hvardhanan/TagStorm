@@ -1,13 +1,17 @@
 import { useRef } from 'react';
-import { PhaserGame } from './PhaserGame';
+import { Routes, Route, BrowserRouter } from 'react-router-dom';
+import { Home } from './routes/home';
+import { Play } from './routes/play';
 
 function App ()
 {
-    const phaserRef = useRef();
     return (
-        <div id="app">
-            <PhaserGame ref={phaserRef} />
-        </div>
+        <BrowserRouter>
+            <Routes>
+                <Route path='/' element={<Home />}></Route>
+                <Route path='/play' element={<Play />}></Route>
+            </Routes>
+        </BrowserRouter>
     )
 }
 
