@@ -8,12 +8,10 @@ export const PhaserGame = forwardRef(function PhaserGame({ currentActiveScene, s
     useLayoutEffect(() => {
         if (game.current === undefined) {
             game.current = StartGame("game-container", sceneKey);
-
             if (ref !== null) {
                 ref.current = { game: game.current, scene: null };
             }
         }
-
         return () => {
             if (game.current) {
                 game.current.destroy(true);
@@ -29,11 +27,12 @@ export const PhaserGame = forwardRef(function PhaserGame({ currentActiveScene, s
             }
             ref.current.scene = currentScene;
         });
-
         return () => {
             EventBus.removeListener('current-scene-ready');
         };
     }, [currentActiveScene, ref]);
 
-    return <div id="game-container"></div>;
+    return (
+        <div id="game-container"></div>
+    );
 });

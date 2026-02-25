@@ -14,7 +14,7 @@ export const Play = () => {
     }
 
     return (
-        <div className="play-container">
+        <div>
             <PhaserGame ref={phaserRef} sceneKey={sceneKey} />
         </div>
     );

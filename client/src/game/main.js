@@ -1,10 +1,7 @@
 import Phaser from 'phaser';
-import { GrassMap } from './scenes/maps/grass-map';
-import { SeaMap } from './scenes/maps/sea-map';
+import { DungeonMap } from './scenes/maps/dungeon';
 
-// All registered map scenes.
-// To add a new map: import its Scene class and add it to this array.
-const ALL_SCENES = [GrassMap, SeaMap];
+const ALL_SCENES = [DungeonMap];
 
 /**
  * Starts the Phaser game with the selected map scene first.
@@ -12,11 +9,9 @@ const ALL_SCENES = [GrassMap, SeaMap];
  * @param {string} sceneKey – Scene key of the map to launch (matches maps[].sceneKey)
  */
 const StartGame = (parent, sceneKey) => {
-    // Put the selected scene first so Phaser auto-starts it
     const selectedIdx = sceneKey
         ? ALL_SCENES.findIndex(S => S.SCENE_KEY === sceneKey)
         : 0;
-
     const orderedScenes = selectedIdx > 0
         ? [ALL_SCENES[selectedIdx], ...ALL_SCENES.filter((_, i) => i !== selectedIdx)]
         : ALL_SCENES;
@@ -25,13 +20,24 @@ const StartGame = (parent, sceneKey) => {
         type: Phaser.AUTO,
         width: window.innerWidth,
         height: window.innerHeight,
+        backgroundColor: '#000000',
         parent,
         scene: orderedScenes,
         pixelArt: true,
-        physics: { default: 'arcade' },
+        roundPixels: true,
+        physics: {
+            default: 'arcade',
+            arcade: {
+                // debug: true,
+                gravity: { y: 1000 },
+            }
+        },
+        // scale: {
+        // mode: Phaser.Scale.FIT,
+        // autoCenter: Phaser.Scale.CENTER_BOTH,
+        // },
     };
 
     return new Phaser.Game(config);
 };
-
 export default StartGame;

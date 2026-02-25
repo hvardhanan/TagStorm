@@ -1,6 +1,5 @@
-import { EventBus } from "../../EventBus";
 import { Scene } from "phaser";
-import { characters } from "../../../common/common";
+import Player from "../player.js";
 
 export class BaseMap extends Scene {
     constructor(mapConfig) {
@@ -9,127 +8,51 @@ export class BaseMap extends Scene {
     }
 
     preload() {
-        const { tilemapKey, tilemapJson, tilesetKey, tilesetImage, tilesets, objectTiles, format } = this.mapConfig;
-
-        if (tilesets) {
-            tilesets.forEach(ts => this.load.image(ts.key, ts.image));
-        } else if (tilesetKey && tilesetImage) {
-            this.load.image(tilesetKey, tilesetImage);
-        }
-
-        // Load individual object tile images if defined
-        if (objectTiles) {
-            objectTiles.forEach(ot => this.load.image(ot.key, ot.image));
+        const { tilemapKey, tilemapJson, tilesets } = this.mapConfig;
+        for (const { key, image } of tilesets) {
+            this.load.image(key, image);
         }
         this.load.tilemapTiledJSON(tilemapKey, tilemapJson);
-
-        const selectedCharacter = window.localStorage.getItem('character');
-        const character = characters.find(c => c.charName === selectedCharacter) ?? characters[0];
-        this.load.image('avatar', character.charImg);
+        this.load.spritesheet('character', '/assets/tiles/character.png', { frameWidth: 32, frameHeight: 32 });
     }
 
     create() {
-        const { tilemapKey, tilesetKey, tilesets, layers, objectTiles, spawnX, spawnY } = this.mapConfig;
+        const map = this.make.tilemap({ key: this.mapConfig.tilemapKey });
+        const tilesetName = this.mapConfig.tilesets[0].name;
+        const tilesetKey = this.mapConfig.tilesets[0].key;
+        const tiles = map.addTilesetImage(tilesetName, tilesetKey, 16, 16, 0, 0);
 
-        const map = this.make.tilemap({ key: tilemapKey });
-
-        // Build GID → texture key lookup for object tiles
-        const gidToKey = {};
-        if (objectTiles) {
-            objectTiles.forEach(ot => { gidToKey[ot.gid] = ot.key; });
-        }
-
-        let loadedTilesets = [];
-        if (tilesets) {
-            loadedTilesets = tilesets.map(ts => map.addTilesetImage(ts.name, ts.key));
-        } else {
-            loadedTilesets = [map.addTilesetImage(map.tilesets[0].name, tilesetKey)];
-        }
-
-        let colliders = [];
-
-        if (layers) {
-            layers.forEach(layerConfig => {
-                if (layerConfig.type === 'objectgroup') {
-                    // Handle object layers
-                    this._spawnObjectLayer(map, layerConfig, gidToKey, colliders);
-                } else {
-                    // Handle tile layers
-                    const layer = map.createLayer(layerConfig.name, loadedTilesets);
-                    if (layer && layerConfig.collides) {
-                        layer.setCollisionByExclusion([-1]);
-                        colliders.push(layer);
-                    }
-                }
-            });
-        }
-
-        this.player = this.physics.add.sprite(spawnX, spawnY, 'avatar');
-
-        colliders.forEach(collider => {
-            this.physics.add.collider(this.player, collider);
+        let collisionLayers = [];
+        this.mapConfig.layers.forEach(({ name, collides }) => {
+            const layer = map.createLayer(name, tiles);
+            if (collides) {
+                layer.setCollisionByExclusion([-1]);
+                collisionLayers.push(layer);
+            }
         });
 
-        this.cameras.main.startFollow(this.player);
-        EventBus.emit('current-scene-ready', this);
-    }
+        const spawnPoints = map.getObjectLayer('SpawnPoints');
+        let spawnX = this.mapConfig.spawnX;
+        let spawnY = this.mapConfig.spawnY;
 
-    _spawnObjectLayer(map, layerConfig, gidToKey, colliders) {
-        const objectLayer = map.getObjectLayer(layerConfig.name);
-        if (!objectLayer) return;
-
-        if (layerConfig.collides) {
-            // Collidable object layer — create static physics sprites
-            const group = this.physics.add.staticGroup();
-
-            objectLayer.objects.forEach(obj => {
-                if (!obj.gid) return;
-                const key = gidToKey[obj.gid];
-                if (!key) return;
-
-                const sprite = group.create(
-                    obj.x + obj.width / 2,
-                    obj.y - obj.height / 2,  // Tiled Y is bottom-left, Phaser is top-left
-                    key
-                );
-                sprite.setDisplaySize(obj.width, obj.height);
-                sprite.refreshBody();
-            });
-
-            colliders.push(group);
-        } else {
-            // Non-collidable object layer — just render visually
-            objectLayer.objects.forEach(obj => {
-                if (!obj.gid) return;
-                const key = gidToKey[obj.gid];
-                if (!key) return;
-
-                this.add.image(
-                    obj.x + obj.width / 2,
-                    obj.y - obj.height / 2,
-                    key
-                ).setDisplaySize(obj.width, obj.height);
-            });
+        if (spawnPoints && spawnPoints.objects.length > 0) {
+            const randomSpawn = spawnPoints.objects[Math.floor(Math.random() * spawnPoints.objects.length)];
+            spawnX = randomSpawn.x;
+            spawnY = randomSpawn.y;
         }
+
+        this.player = new Player(this, spawnX, spawnY);
+        collisionLayers.forEach(layer => {
+            this.physics.add.collider(this.player.sprite, layer);
+        });
+        this.cameras.main.startFollow(this.player.sprite, true, 0.05, 0.05);
+        this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+        this.cameras.main.setRoundPixels(true);
     }
 
     update() {
-        if (!this._keys) {
-            this._keys = this.input.keyboard.addKeys({
-                up: Phaser.Input.Keyboard.KeyCodes.W,
-                down: Phaser.Input.Keyboard.KeyCodes.S,
-                left: Phaser.Input.Keyboard.KeyCodes.A,
-                right: Phaser.Input.Keyboard.KeyCodes.D,
-            });
+        if (this.player) {
+            this.player.update();
         }
-
-        const { up, down, left, right } = this._keys;
-        const speed = 175;
-
-        this.player.setVelocity(0);
-        if (left.isDown) this.player.setVelocityX(-speed);
-        else if (right.isDown) this.player.setVelocityX(speed);
-        if (up.isDown) this.player.setVelocityY(-speed);
-        else if (down.isDown) this.player.setVelocityY(speed);
     }
 }

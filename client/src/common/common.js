@@ -34,61 +34,21 @@ export const characters = [
  */
 export const maps = [
     {
-        sceneKey: 'GrassMap',
-        name: 'Grass Map',
-        description: 'A lush grassy map with various objects.',
+        sceneKey: 'DungeonMap',
+        name: 'Dungeon Map',
+        description: 'A dark and mysterious dungeon with various obstacles.',
         format: 'tiled',
-        tilemapKey: 'grassmap',
-        tilemapJson: '/assets/maps/grassMap.json',
+        tilemapKey: 'dungeon',
+        tilemapJson: '/assets/maps/dungeon.json',
         tilesets: [
-            { name: 'Grass', key: 'grass-tiles', image: '/assets/tiles/TX Tileset Grass.png' },
-            { name: 'Wall', key: 'wall-tiles', image: '/assets/tiles/TX Tileset Wall.png' },
-            { name: 'Plant', key: 'plant-tiles', image: '/assets/tiles/TX Plant.png' },
-            { name: 'TXProps', key: 'props-tiles', image: '/assets/tiles/TX Props.png' }
-        ],
-        layers: [
-            { name: 'Grass', collides: false },
-            { name: 'Statue', collides: true },
-            { name: 'Chair', collides: true },
-            { name: 'TombStone', collides: true },
-            { name: 'Stone', collides: true },
-            { name: 'FootPath', collides: false },
-            { name: 'Plants', collides: true }
-        ],
-        spawnX: 400,
-        spawnY: 300,
-    },
-    {
-        sceneKey: 'SeaMap',
-        name: 'Sea Map',
-        description: 'A vast sea map with various coastal elements.',
-        format: 'tiled',
-        tilemapKey: 'seamap',
-        tilemapJson: '/assets/maps/seamap.json',
-        tilesets: [
-            { name: 'Background', key: 'seamap-background', image: '/assets/tiles/background/Background.png' }
+            { name: 'tileset', key: 'dungeon-tiles', image: '/assets/tiles/tileset.png' },
         ],
         layers: [
             { name: 'Background', collides: false },
-            { name: 'Collision', collides: true, type: 'objectgroup' },
-            { name: 'Passthrough', collides: false, type: 'objectgroup' },
-            { name: 'BaseLayer', collides: false },
+            { name: 'CollisionLayer', collides: true },
+            { name: 'Chain', collides: false },
         ],
-        objectTiles: [
-            { gid: 3090, key: 'obj-cargo-18', image: '/assets/tiles/cargos/18.png' },
-            { gid: 3091, key: 'obj-cargo-19', image: '/assets/tiles/cargos/19.png' },
-            { gid: 3086, key: 'obj-cargo-14', image: '/assets/tiles/cargos/14.png' },
-            { gid: 3094, key: 'obj-cargo-22', image: '/assets/tiles/cargos/22.png' },
-            { gid: 3095, key: 'obj-cargo-23', image: '/assets/tiles/cargos/23.png' },
-            { gid: 3100, key: 'obj-cargo-28', image: '/assets/tiles/cargos/28.png' },
-            { gid: 3103, key: 'obj-crane', image: '/assets/tiles/overheadcrane/Overhead-crane.png' },
-            { gid: 3106, key: 'obj-fence-1', image: '/assets/tiles/fencing/1.png' },
-            { gid: 3113, key: 'obj-fence-8', image: '/assets/tiles/fencing/8.png' },
-            { gid: 3114, key: 'obj-cart', image: '/assets/tiles/overheadcrane/Cart.png' },
-            { gid: 3104, key: 'base-tile', image: '/assets/tiles/tiles/tile_01.png' },
-
-        ],
-        spawnX: 100,
-        spawnY: 250,
+        spawnX: 400,
+        spawnY: 300,
     }
 ];

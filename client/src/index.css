@@ -1,9 +1,7 @@
-@import "tailwindcss";
+/* @import "tailwindcss"; */
 
-.play-container {
-    display: flex;
-    width: 100%;
-    height: 100%;
-    overflow: hidden;
-    border: 1px solid #ccc;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
 }
