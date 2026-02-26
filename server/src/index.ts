@@ -13,8 +13,8 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-app.use('/room', room);
-app.use('/user', user);
+app.use('/api/room', room);
+app.use('/api/user', user);
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {

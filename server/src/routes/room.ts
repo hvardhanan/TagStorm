@@ -12,7 +12,7 @@ room.post('/create', (req: Request, res: Response) => {
         }
         const newRoomId = Math.random().toString(36).substring(2, 9);
         roomManager.createRoom(newRoomId);
-        res.json({ roomId: newRoomId });
+        res.status(201).json({ roomId: newRoomId });
     }
     catch (error) {
         return res.status(500).json({ error: "An error occurred while creating the room" });
