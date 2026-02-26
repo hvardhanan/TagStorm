@@ -1,7 +1,13 @@
-/* @import "tailwindcss"; */
+@font-face {
+  font-family: 'ArcadeClassic';
+  src: url('../public/fonts/arcadeClassic.TTF') format('truetype');
+  font-weight: normal;
+  font-style: normal;
+}
 
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: 'ArcadeClassic', sans-serif;
 }

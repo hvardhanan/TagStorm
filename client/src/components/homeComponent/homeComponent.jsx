@@ -1,44 +1,70 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CharacterSelection } from "../characterSelection/characterSelection";
-import { MapSelection } from "../mapSelection/mapSelection";
 import * as styles from "./home.module.css";
 
 export const HomeComponent = () => {
     const navigate = useNavigate();
-    const [step, setStep] = useState('avatar'); // 'avatar' | 'map'
-    const [selectedCharacter, setSelectedCharacter] = useState(null);
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [roomId, setRoomId] = useState("");
 
-    const handleCharacterSelect = (charName) => {
-        window.localStorage.setItem('character', charName);
-        setSelectedCharacter(charName);
-        setStep('map');
+    const handleCreateRoom = () => {
+        // Logic to generate a random ID or hit an API
+        const newRoomId = Math.random().toString(36).substring(2, 9);
+        navigate(`/room/${newRoomId}`);
     };
 
-    const handleMapSelect = (map) => {
-        window.localStorage.setItem('selectedMap', map.sceneKey);
-        navigate('/play');
+    const handleJoinRoom = (e) => {
+        e.preventDefault();
+        if (roomId.trim()) {
+            navigate(`/room/${roomId}`);
+        }
     };
 
     return (
         <div className={styles.container}>
-            {step === 'avatar' && (
-                <>
-                    <h2 className={styles.stepHeading}>Choose Your Avatar</h2>
-                    <CharacterSelection setSelectedCharacter={handleCharacterSelect} />
-                </>
-            )}
+            <h1 className={styles.stepHeading}>Welcome to the Workspace</h1>
+            
+            <div className={styles.cardContainer}>
+                {/* Create Room Card */}
+                <div className={styles.card} onClick={handleCreateRoom}>
+                    <div className={styles.icon}>➕</div>
+                    <h3>Create Room</h3>
+                    <p>Start a new session and invite others.</p>
+                </div>
 
-            {step === 'map' && (
-                <>
-                    <MapSelection onMapSelect={handleMapSelect} />
-                    <button
-                        className={styles.backBtn}
-                        onClick={() => setStep('avatar')}
-                    >
-                        ← Back
-                    </button>
-                </>
+                {/* Join Room Card */}
+                <div className={styles.card} onClick={() => setIsModalOpen(true)}>
+                    <div className={styles.icon}>👥</div>
+                    <h3>Join Room</h3>
+                    <p>Enter an existing ID to join a session.</p>
+                </div>
+            </div>
+
+            {/* Join Room Modal */}
+            {isModalOpen && (
+                <div className={styles.modalOverlay}>
+                    <div className={styles.modalContent}>
+                        <h3>Join a Room</h3>
+                        <form onSubmit={handleJoinRoom}>
+                            <input 
+                                type="text" 
+                                placeholder="Enter Room ID..." 
+                                value={roomId}
+                                onChange={(e) => setRoomId(e.target.value)}
+                                className={styles.input}
+                                autoFocus
+                            />
+                            <div className={styles.modalActions}>
+                                <button type="button" className={styles.backBtn} onClick={() => setIsModalOpen(false)}>
+                                    Cancel
+                                </button>
+                                <button type="submit" className={styles.primaryBtn}>
+                                    Join Now
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
             )}
         </div>
     );

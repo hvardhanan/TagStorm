@@ -10,6 +10,7 @@ function App ()
             <Routes>
                 <Route path='/' element={<Home />}></Route>
                 <Route path='/play' element={<Play />}></Route>
+                <Route path='/room/:roomId' element={<Play />}></Route>
             </Routes>
         </BrowserRouter>
     )
