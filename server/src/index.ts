@@ -26,7 +26,7 @@ const io = new Server(httpServer, {
 io.on("connection", (socket) => {
     console.log("Player connected:", socket.id);
 
-    socket.on("joinRoom", ({ roomId, playerId}) => {
+    socket.on("joinRoom", ({ roomId, playerId }) => {
         try {
             // console.log(`Player ${playerId} is attempting to join room ${roomId}`); 
             const isRoomExists = roomManager.getRoom(roomId);
@@ -63,10 +63,30 @@ io.on("connection", (socket) => {
         }
     })
 
-    socket.on("updatePosition", ({ roomId, x, y }) => { 
+    socket.on("updatePosition", ({ roomId, x, y }) => {
         const updated = roomManager.updatePosition(roomId, socket.id, x, y);
         if (updated) {
             socket.to(roomId).emit("player-moved", { socketId: socket.id, x, y });
+        }
+    })
+
+    socket.on("start-game", ({ roomId }) => {
+        try {
+            const players = roomManager.getRoom(roomId);
+            if (!players) {
+                socket.emit("error", { error: "Room does not exist" });
+                return;
+            }
+            const sender = players.find(p => p.socketId === socket.id);
+            if (!sender?.admin) {
+                socket.emit("error", { error: "Only the host can start the game" });
+                return;
+            }
+            io.to(roomId).emit("game-start", { roomId });
+            console.log(`Game started in room ${roomId} by ${sender.playerId}`);
+        } catch (error) {
+            console.error("Error starting game:", error);
+            socket.emit("error", { error: "An error occurred while starting the game" });
         }
     })
 
@@ -76,10 +96,10 @@ io.on("connection", (socket) => {
             const allRooms = roomManager.getRooms();
             allRooms.forEach((players, roomId) => {
                 const playerIndex = players.findIndex(p => p.socketId === socket.id);
-                
+
                 if (playerIndex !== -1) {
                     const playerId = players[playerIndex]?.playerId;
-                    if(!playerId) {
+                    if (!playerId) {
                         console.warn(`Player with socket ID ${socket.id} has no associated playerId. Skipping cleanup.`);
                         return;
                     }
