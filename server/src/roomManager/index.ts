@@ -1,5 +1,9 @@
+interface Player {
+    playerId: string;
+    admin: boolean;
+}
 export class RoomManager {
-    private rooms: Map<string, any>;
+    private rooms: Map<string, Player[]>;
 
     constructor() {
         this.rooms = new Map();
@@ -13,26 +17,26 @@ export class RoomManager {
         return this.rooms.get(roomId);
     }
 
-    createRoom(roomId: string){
-        this.rooms.set(roomId, { players: [] });
+    createRoom(roomId: string, playerId: string){
+        this.rooms.set(roomId, [{ playerId: playerId, admin: true }]);
     }
 
     joinRoom(roomId: string, playerId: string){
-        if(!this.rooms.has(roomId)) {
+        const room = this.rooms.get(roomId);
+        if(!room) {
             throw new Error("Room does not exist");
         }
-        const room = this.rooms.get(roomId);
-        room.players.push(playerId);
+        room.push({ playerId: playerId, admin: false });
         this.rooms.set(roomId, room);
     }
 
     exitRoom(roomId: string, playerId: string){
-        if(!this.rooms.has(roomId)) {
+        const room = this.rooms.get(roomId);
+        if(!room) {
             throw new Error("Room does not exist");
         }
-        const room = this.rooms.get(roomId);
-        room.players = room.players.filter((id: string) => id !== playerId);
-        this.rooms.set(roomId, room);
+        const updatedRoom = room.filter((player: Player) => player.playerId !== playerId);
+        this.rooms.set(roomId, updatedRoom);
     }   
 }
 

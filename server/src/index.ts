@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors'
 import { room } from './routes/room.js';
+import { user } from './routes/user.js';
 import dotenv from 'dotenv';
 
 dotenv.config();
@@ -10,6 +11,7 @@ app.use(express.json());
 app.use(cors());
 
 app.use('/room', room);
+app.use('/user', user);
 
 const PORT = process.env.PORT || 3000;
 
