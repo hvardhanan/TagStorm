@@ -22,7 +22,7 @@ export const HomeComponent = () => {
 
     return (
         <div className={styles.container}>
-            <h1 className={styles.stepHeading}>Welcome to the Workspace</h1>
+            <h1 className={`${styles.stepHeading} text-white`}>Welcome to the Workspace</h1>
             
             <div className={styles.cardContainer}>
                 {/* Create Room Card */}
