@@ -2,12 +2,17 @@ import { forwardRef, useEffect, useLayoutEffect, useRef } from 'react';
 import StartGame from './game/main';
 import { EventBus } from './game/EventBus';
 
-export const PhaserGame = forwardRef(function PhaserGame({ currentActiveScene, sceneKey }, ref) {
+export const PhaserGame = forwardRef(function PhaserGame({ currentActiveScene, sceneKey, roomId }, ref) {
     const game = useRef();
 
     useLayoutEffect(() => {
         if (game.current === undefined) {
             game.current = StartGame("game-container", sceneKey);
+
+            if (roomId) {
+                game.current.registry.set('roomId', roomId);
+            }
+
             if (ref !== null) {
                 ref.current = { game: game.current, scene: null };
             }

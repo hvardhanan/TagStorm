@@ -2,13 +2,7 @@ import { HomeComponent } from "../components/homeComponent/homeComponent"
 
 export const Home = () => {
     return(
-        <div style={{
-            minHeight: '100vh',
-            display: 'flex',
-            alignItems:'center',
-            justifyContent: 'center',
-            backgroundColor: '#000'
-        }}>
+        <div className="min-h-dvh flex items-center justify-center bg-black">
             <HomeComponent />
         </div>
     )
