@@ -21,6 +21,7 @@ export const HomeComponent = () => {
     const [createUserModalOpen, setCreateUserModalOpen] = useState(false);
     const [username, setUsername] = useState("");
     const [roomId, setRoomId] = useState("");
+    const [pendingAction, setPendingAction]  = useState(null);
 
     const handleCreateUser = async () => {
         try {
@@ -31,9 +32,18 @@ export const HomeComponent = () => {
                 window.localStorage.setItem('playerId', username);
             }
             setCreateUserModalOpen(false);
+            setUsername("");
+            if (pendingAction === "join") {
+                setIsModalOpen(true);
+            }
+            else if(pendingAction === "create") {
+                handleCreateRoom();
+            }
+            setPendingAction(null);
         }
         catch (error) {
             setCreateUserModalOpen(false);
+            setPendingAction(null);
             console.error("Error creating user:", error);
         }
     }
@@ -42,6 +52,7 @@ export const HomeComponent = () => {
         try {
             const playerId = window.localStorage.getItem('playerId');
             if (!playerId) {
+                setPendingAction("create");
                 setCreateUserModalOpen(true);
                 return;
             }
@@ -64,12 +75,22 @@ export const HomeComponent = () => {
         }
     };
 
-    const handleJoinRoom = (e) => {
+    const handleJoinRoomClick = () => {
+        const playerId = window.localStorage.getItem('playerId');
+        if (!playerId) {
+            setPendingAction('join');
+            setCreateUserModalOpen(true);
+            return;
+        }
+        setIsModalOpen(true);
+    };
+
+    const handleJoinRoomSubmit = (e) => {
         e.preventDefault();
         if (roomId.trim()) {
             navigate(`/room/${roomId}`);
         }
-    };
+    }
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen gap-8">
@@ -85,7 +106,7 @@ export const HomeComponent = () => {
                     </CardContent>
                 </Card>
 
-                <Card className="cursor-pointer hover:opacity-80 transition-opacity w-md" onClick={() => setIsModalOpen(true)}>
+                <Card className="cursor-pointer hover:opacity-80 transition-opacity w-md" onClick={handleJoinRoomClick}>
                     <CardHeader>
                         <CardTitle>👥 Join Room</CardTitle>
                     </CardHeader>
@@ -139,7 +160,7 @@ export const HomeComponent = () => {
                             <CardTitle>Join a Room</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <form onSubmit={handleJoinRoom} className="flex flex-col gap-4">
+                            <form onSubmit={handleJoinRoomSubmit} className="flex flex-col gap-4">
                                 <Input
                                     type="text"
                                     placeholder="Enter Room ID..."
@@ -161,7 +182,7 @@ export const HomeComponent = () => {
                             <Button
                                 type="submit"
                                 className="bg-primary text-primary-foreground px-4 py-2"
-                                onClick={handleJoinRoom}
+                                onClick={handleJoinRoomSubmit}
                             >
                                 Join Now
                             </Button>

@@ -39,6 +39,7 @@ export const Play = () => {
     } = useRoom(roomId, playerId);
 
     const handleLeave = () => {
+        window.localStorage.removeItem('selectedMap');
         leaveRoom();
         navigate('/');
     };
