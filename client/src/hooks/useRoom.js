@@ -6,6 +6,8 @@ export function useRoom(roomId, playerId) {
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState(null);
     const [gameStarted, setGameStarted] = useState(false);
+    const [endTime, setEndTime] = useState(null);
+    const [winner, setWinner] = useState(null);
 
     const roomIdRef = useRef(roomId);
     const playerIdRef = useRef(playerId);
@@ -23,8 +25,13 @@ export function useRoom(roomId, playerId) {
         setError(payload?.error ?? "An unknown error occurred");
     }, []);
 
-    const handleGameStart = useCallback(() => {
+    const handleGameStart = useCallback(({ endTime }) => {
+        setEndTime(endTime);
         setGameStarted(true);
+    }, []);
+
+    const handleGameOver = useCallback(({ winnerName }) => {
+        setWinner(winnerName);
     }, []);
 
 
@@ -47,6 +54,7 @@ export function useRoom(roomId, playerId) {
         socketManager.on("update-players", handleUpdatePlayers);
         socketManager.on("error", handleError);
         socketManager.on("game-start", handleGameStart);
+        socketManager.on("game-over", handleGameOver);
 
         socketManager.on("disconnect", () => setIsConnected(false));
 
@@ -56,6 +64,7 @@ export function useRoom(roomId, playerId) {
             socketManager.off("update-players", handleUpdatePlayers);
             socketManager.off("error", handleError);
             socketManager.off("game-start", handleGameStart);
+            socketManager.off("game-over", handleGameOver);
             socketManager.disconnect();
         };
     }, [roomId, playerId]);
@@ -79,6 +88,8 @@ export function useRoom(roomId, playerId) {
         isAdmin,
         error,
         gameStarted,
+        endTime,
+        winner,
         startGame,
         leaveRoom,
     };

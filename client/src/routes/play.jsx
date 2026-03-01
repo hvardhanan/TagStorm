@@ -4,11 +4,15 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { Lobby } from '../components/lobby/Lobby';
 import { MapSelection } from '../components/mapSelection/mapSelection';
+import { Card, CardContent, CardTitle, CardHeader } from '@/components/ui/card';
 
 export const Play = () => {
     const phaserRef = useRef();
     const navigate = useNavigate();
     const { roomId } = useParams();
+
+    const [timeLeft, setTimeLeft] = useState(120);
+    const [isTimeUp, setIsTimeUp] = useState(false);
 
     const playerId = window.localStorage.getItem('playerId');
 
@@ -34,9 +38,36 @@ export const Play = () => {
         isAdmin,
         error,
         gameStarted,
+        endTime,
+        winner,
         startGame,
         leaveRoom,
     } = useRoom(roomId, playerId);
+
+    useEffect(() => {
+        if (!gameStarted || !endTime) return;
+
+        const updateTimer = () => {
+            const now = Date.now();
+            const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
+            setTimeLeft(remaining);
+            if (remaining <= 0) {
+                clearInterval(timer);
+                setIsTimeUp(true);
+            }
+        };
+
+        updateTimer();
+        const timer = setInterval(updateTimer, 1000);
+
+        return () => clearInterval(timer);
+    }, [gameStarted, endTime]);
+
+    useEffect(() => {
+        if (winner) {
+            setIsTimeUp(true);
+        }
+    }, [winner]);
 
     const handleLeave = () => {
         window.localStorage.removeItem('selectedMap');
@@ -68,6 +99,20 @@ export const Play = () => {
 
     return (
         <div>
+            {
+                isTimeUp && (
+                    <Card className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-md">
+                        <CardHeader>
+                            <CardTitle>Winner 👑</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <p className="text-xl font-bold text-center mb-4">{winner}</p>
+                            <p className="text-muted-foreground text-center text-sm">Start a new session and invite others</p>
+                        </CardContent>
+                    </Card>
+                )
+            }
+            <div className="absolute top-5 left-1/2 -translate-x-1/2">{timeLeft}</div>
             <PhaserGame ref={phaserRef} sceneKey={selectedMap} roomId={roomId} />
         </div>
     );

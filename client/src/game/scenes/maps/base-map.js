@@ -6,8 +6,6 @@ export class BaseMap extends Scene {
     constructor(mapConfig) {
         super(mapConfig.sceneKey);
         this.mapConfig = mapConfig;
-
-        /** @type {Map<string, Phaser.GameObjects.Sprite>} socketId → sprite */
         this.remotePlayers = new Map();
     }
 
@@ -53,15 +51,19 @@ export class BaseMap extends Scene {
         this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
         this.cameras.main.setRoundPixels(true);
 
-        /* ── Socket: multiplayer wiring ──────────── */
         this.roomId = this.registry.get('roomId');
+
+        // Tag game state
+        this.isIt = false;
+        this.currentItId = null;
+        this._lastTagTime = 0;
 
         if (this.roomId && socketManager.isConnected) {
             this._setupSocketListeners();
+            // Request current "it" status since tag-update may have fired before scene loaded
+            socketManager.emit("request-tag-status", { roomId: this.roomId });
         }
     }
-
-    /* ─── Socket listener setup ──────────────────── */
 
     _setupSocketListeners() {
         // When another player moves, update (or create) their sprite
@@ -70,23 +72,62 @@ export class BaseMap extends Scene {
 
             let remote = this.remotePlayers.get(socketId);
             if (!remote) {
-                // Create a ghost sprite for the remote player
-                remote = this.add.sprite(x, y, 'character', 0)
+                // Create a physics-enabled sprite for the remote player
+                remote = this.physics.add.sprite(x, y, 'character', 0)
                     .setScale(1.5)
-                    .setAlpha(0.85);
+                    .setAlpha(0.85)
+                    .setSize(18, 19)
+                    .setOffset(7, 5);
+                remote.body.setImmovable(true);
+                remote.body.setAllowGravity(false);
                 this.remotePlayers.set(socketId, remote);
+
+                if (socketId === this.currentItId) {
+                    remote.setTint(0xff4444);
+                }
+
+                // Tag collision detection
+                this.physics.add.overlap(this.player.sprite, remote, () => {
+                    this._handleCollision(socketId);
+                });
+
             }
+            // Calculate difference to determine animation
+            const dx = x - remote.x;
+            const dy = y - remote.y;
+
+            if (dx < -0.5) {
+                remote.setFlipX(true);
+            } else if (dx > 0.5) {
+                remote.setFlipX(false);
+            }
+
+            // Assume jumped/falling if significant Y change
+            if (dy < -2 || dy > 2) {
+                remote.anims.stop();
+                remote.setTexture("character", 48);
+            } else if (Math.abs(dx) > 0.5) {
+                remote.anims.play("player-run", true);
+            } else {
+                remote.anims.play("player-idle", true);
+            }
+
             // Smooth lerp to the target position
-            this.tweens.add({
+            if (remote.moveTween) remote.moveTween.stop();
+            remote.moveTween = this.tweens.add({
                 targets: remote,
                 x,
                 y,
-                duration: 100,
+                duration: 25,
                 ease: 'Linear',
+                onComplete: () => {
+                    // Revert to idle if they reached target
+                    remote.anims.play("player-idle", true);
+                }
             });
+
         };
 
-        // When a player disconnects or leaves, remove their sprite
         this._onPlayersUpdated = (playersList) => {
             if (!Array.isArray(playersList)) return;
 
@@ -99,11 +140,41 @@ export class BaseMap extends Scene {
             }
         };
 
+        // When the server tells us who is "it", update tints
+        this._onTagUpdate = ({ itSocketId }) => {
+            console.log("[tag-update] received! itSocketId:", itSocketId, "myId:", socketManager.id, "match:", itSocketId === socketManager.id);
+
+            this.currentItId = itSocketId
+            const newlyIt = (!this.isIt) && (itSocketId === socketManager.id);
+            this.isIt = (itSocketId === socketManager.id);
+
+            // Give the new "It" a 3-second cooldown before they can tag anyone
+            // This prevents rapid tag-backs since players might still be overlapping
+            if (newlyIt) {
+                this._lastTagTime = Date.now();
+            }
+
+            // Update visual tints on all remote players
+            for (const [sid, sprite] of this.remotePlayers) {
+                if (sid === itSocketId) {
+                    sprite.setTint(0xff4444); // Red tint = this player is "it"
+                } else {
+                    sprite.clearTint();
+                }
+            }
+
+            // Visual feedback on local player
+            if (this.isIt) {
+                this.player.sprite.setTint(0xff4444);
+            } else {
+                this.player.sprite.clearTint();
+            }
+        };
+
         socketManager.on("player-moved", this._onPlayerMoved);
         socketManager.on("update-players", this._onPlayersUpdated);
+        socketManager.on("tag-update", this._onTagUpdate);
     }
-
-    /* ─── Position broadcast throttle ────────────── */
 
     _broadcastPosition() {
         if (!this.roomId || !socketManager.isConnected) return;
@@ -111,7 +182,6 @@ export class BaseMap extends Scene {
         const x = Math.round(this.player.sprite.x);
         const y = Math.round(this.player.sprite.y);
 
-        // Only send if the position actually changed
         if (x !== this._lastX || y !== this._lastY) {
             socketManager.updatePosition(this.roomId, x, y);
             this._lastX = x;
@@ -119,20 +189,33 @@ export class BaseMap extends Scene {
         }
     }
 
-    /* ─── Game loop ──────────────────────────────── */
+    _handleCollision(remoteSocketId) {
+        // Only the player who is "it" can tag someone
+        if (!this.isIt) return;
 
-    update(time, delta) {
+        // Cooldown to prevent rapid tagging
+        const now = Date.now();
+        if (now - this._lastTagTime < 3000) return;
+        this._lastTagTime = now;
+
+        // Emit tag event to the server
+        socketManager.emit("tag", {
+            roomId: this.roomId,
+            taggedSocketId: remoteSocketId,
+        });
+    }
+
+    update() {
         if (this.player) {
             this.player.update();
             this._broadcastPosition();
         }
     }
 
-    /* ─── Cleanup on scene shutdown ──────────────── */
-
     shutdown() {
         socketManager.off("player-moved", this._onPlayerMoved);
         socketManager.off("update-players", this._onPlayersUpdated);
+        socketManager.off("tag-update", this._onTagUpdate);
 
         for (const [, sprite] of this.remotePlayers) {
             sprite.destroy();
