@@ -16,6 +16,9 @@ app.use(cors());
 app.use('/api/room', room);
 app.use('/api/user', user);
 
+const roomTimers = new Map();
+const roomEndTimes = new Map();
+
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
     cors: {
@@ -72,6 +75,8 @@ io.on("connection", (socket) => {
 
     socket.on("start-game", ({ roomId }) => {
         try {
+            if (roomTimers.has(roomId)) return;
+
             const players = roomManager.getRoom(roomId);
             if (!players) {
                 socket.emit("error", { error: "Room does not exist" });
@@ -82,7 +87,22 @@ io.on("connection", (socket) => {
                 socket.emit("error", { error: "Only the host can start the game" });
                 return;
             }
-            io.to(roomId).emit("game-start", { roomId });
+            const timeLeft = 120_000;
+            const endTime = timeLeft + Date.now();
+            io.to(roomId).emit("game-start", { roomId, endTime });
+
+            const timeoutId = setTimeout(() => {
+                const currentPlayers = roomManager.getRoom(roomId);
+                if (currentPlayers) {
+                    const winner = currentPlayers.find(p => !p.isIt);
+                    io.to(roomId).emit("game-over", { winnerName: winner?.playerId || "Unknown" });
+                    roomTimers.delete(roomId);
+                    roomEndTimes.delete(roomId);
+                }
+            }, timeLeft);
+
+            roomTimers.set(roomId, timeoutId);
+            roomEndTimes.set(roomId, endTime);
 
             // Assign a random player as "it"
             const randomIndex = Math.floor(Math.random() * players.length);
@@ -92,7 +112,7 @@ io.on("connection", (socket) => {
             const itSocketId = players[randomIndex]!.socketId;
             io.to(roomId).emit("tag-update", { itSocketId });
 
-            console.log(`Game started in room ${roomId} by ${sender.playerId}. ${itSocketId} is "it".`);
+            console.log(`Game started in room ${roomId} by ${sender.playerId}. ${itSocketId} is "it". End time: ${endTime}`);
         } catch (error) {
             console.error("Error starting game:", error);
             socket.emit("error", { error: "An error occurred while starting the game" });
