@@ -80,6 +80,10 @@ export class BaseMap extends Scene {
                     .setOffset(7, 5);
                 remote.body.setImmovable(true);
                 remote.body.setAllowGravity(false);
+                remote.targetX = x;
+                remote.targetY = y;
+                remote.vx = 0;
+                remote.vy = 0;
                 this.remotePlayers.set(socketId, remote);
 
                 if (socketId === this.currentItId) {
@@ -95,6 +99,7 @@ export class BaseMap extends Scene {
             // Calculate difference to determine animation
             const dx = x - remote.x;
             const dy = y - remote.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
 
             if (dx < -0.5) {
                 remote.setFlipX(true);
@@ -112,16 +117,25 @@ export class BaseMap extends Scene {
                 remote.anims.play("player-idle", true);
             }
 
-            // Smooth lerp to the target position
+            // Calculate velocity for client-side extrapolation
+            // Assuming updates come ~every 100ms
+            remote.targetX = x;
+            remote.targetY = y;
+            remote.vx = dx / 0.1; // pixels per second
+            remote.vy = dy / 0.1;
+
+            // Smooth lerp to the target position with adaptive duration
+            // Duration should match expected update interval (~100ms)
+            const tweenDuration = 90; // 90ms to ensure smooth transition before next update
             if (remote.moveTween) remote.moveTween.stop();
             remote.moveTween = this.tweens.add({
                 targets: remote,
                 x,
                 y,
-                duration: 25,
+                duration: tweenDuration,
                 ease: 'Linear',
                 onComplete: () => {
-                    // Revert to idle if they reached target
+                    // Keep idle animation; next update will come soon
                     remote.anims.play("player-idle", true);
                 }
             });
@@ -179,14 +193,19 @@ export class BaseMap extends Scene {
     _broadcastPosition() {
         if (!this.roomId || !socketManager.isConnected) return;
 
+        const now = Date.now();
+        // Send position updates at fixed 100ms intervals for consistent network traffic
+        if (!this._lastPositionUpdateTime) {
+            this._lastPositionUpdateTime = now;
+        }
+        
+        if (now - this._lastPositionUpdateTime < 100) return;
+
         const x = Math.round(this.player.sprite.x);
         const y = Math.round(this.player.sprite.y);
 
-        if (x !== this._lastX || y !== this._lastY) {
-            socketManager.updatePosition(this.roomId, x, y);
-            this._lastX = x;
-            this._lastY = y;
-        }
+        socketManager.updatePosition(this.roomId, x, y);
+        this._lastPositionUpdateTime = now;
     }
 
     _handleCollision(remoteSocketId) {

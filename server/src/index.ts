@@ -18,6 +18,7 @@ app.use('/api/user', user);
 
 const roomTimers = new Map();
 const roomEndTimes = new Map();
+const playerLastUpdate = new Map(); // Track last update time per player
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -28,6 +29,8 @@ const io = new Server(httpServer, {
 
 io.on("connection", (socket) => {
     console.log("Player connected:", socket.id);
+    const socketUpdateKey = `${socket.id}-updateTime`;
+    playerLastUpdate.set(socketUpdateKey, 0);
 
     socket.on("joinRoom", ({ roomId, playerId }) => {
         try {
@@ -67,8 +70,16 @@ io.on("connection", (socket) => {
     })
 
     socket.on("updatePosition", ({ roomId, x, y }) => {
+        const now = Date.now();
+        const socketUpdateKey = `${socket.id}-updateTime`;
+        const lastUpdate = playerLastUpdate.get(socketUpdateKey) || 0;
+        
+        // Rate limit: only allow updates every 50ms (20 updates/second)
+        if (now - lastUpdate < 50) return;
+        
         const updated = roomManager.updatePosition(roomId, socket.id, x, y);
         if (updated) {
+            playerLastUpdate.set(socketUpdateKey, now);
             socket.to(roomId).emit("player-moved", { socketId: socket.id, x, y });
         }
     })
@@ -87,7 +98,7 @@ io.on("connection", (socket) => {
                 socket.emit("error", { error: "Only the host can start the game" });
                 return;
             }
-            const timeLeft = 120_000;
+            const timeLeft = 15_000;
             const endTime = timeLeft + Date.now();
             io.to(roomId).emit("game-start", { roomId, endTime });
 
@@ -156,6 +167,8 @@ io.on("connection", (socket) => {
 
     socket.on("disconnect", () => {
         console.log("Player disconnected:", socket.id);
+        const socketUpdateKey = `${socket.id}-updateTime`;
+        playerLastUpdate.delete(socketUpdateKey);
         try {
             const allRooms = roomManager.getRooms();
             allRooms.forEach((players, roomId) => {
