@@ -98,7 +98,7 @@ io.on("connection", (socket) => {
                 socket.emit("error", { error: "Only the host can start the game" });
                 return;
             }
-            const timeLeft = 15_000;
+            const timeLeft = 120_000;
             const endTime = timeLeft + Date.now();
             io.to(roomId).emit("game-start", { roomId, endTime });
 
