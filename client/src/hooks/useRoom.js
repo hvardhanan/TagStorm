@@ -31,6 +31,7 @@ export function useRoom(roomId, playerId) {
     }, []);
 
     const handleGameOver = useCallback(({ loserName }) => {
+        console.log('[useRoom] Game Over event received, loserName:', loserName);
         setLoser(loserName);
     }, []);
 

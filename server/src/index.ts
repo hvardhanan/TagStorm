@@ -106,7 +106,9 @@ io.on("connection", (socket) => {
                 const currentPlayers = roomManager.getRoom(roomId);
                 if (currentPlayers) {
                     const loser = currentPlayers.find(p => p.isIt);
-                    io.to(roomId).emit("game-over", { loserName: loser?.playerId || "Unknown" });
+                    const loserName = loser?.playerId || "Unknown";
+                    console.log(`[Game Over] Room ${roomId}: Loser = ${loserName}, Player object:`, loser);
+                    io.to(roomId).emit("game-over", { loserName });
                     roomTimers.delete(roomId);
                     roomEndTimes.delete(roomId);
                 }

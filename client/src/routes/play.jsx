@@ -65,6 +65,7 @@ export const Play = () => {
 
     useEffect(() => {
         if (loser) {
+            console.log('[Play] Loser updated:', loser);
             setIsTimeUp(true);
         }
     }, [loser]);
@@ -101,12 +102,12 @@ export const Play = () => {
         <div>
             {
                 isTimeUp && (
-                    <Card className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-md">
+                    <Card className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-md z-50">
                         <CardHeader>
                             <CardTitle>Loser 😭</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-xl font-bold text-center mb-4">{loser}</p>
+                            <p className="text-xl font-bold text-center mb-4">{loser || 'Loading...'}</p>
                             <p className="text-muted-foreground text-center text-sm">Start a new session and invite others</p>
                         </CardContent>
                     </Card>
