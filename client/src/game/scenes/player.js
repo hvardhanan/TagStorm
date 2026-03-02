@@ -27,7 +27,7 @@ export default class Player {
       .sprite(x, y, "character", 0)
       .setScale(1.5)
       .setDrag(1000, 0)
-      .setMaxVelocity(300, 400)
+      .setMaxVelocity(300, 600)
       .setSize(18, 19)
       .setOffset(7, 5);
 
@@ -67,7 +67,7 @@ export default class Player {
 
     // Only allow the player to jump if they are on the ground
     if (onGround && (keys.up.isDown || keys.w.isDown)) {
-      sprite.setVelocityY(-500);
+      sprite.setVelocityY(-900);
     }
 
     // Update the animation/texture based on the state of the player
