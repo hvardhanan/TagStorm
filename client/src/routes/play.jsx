@@ -11,7 +11,7 @@ export const Play = () => {
     const navigate = useNavigate();
     const { roomId } = useParams();
 
-    const [timeLeft, setTimeLeft] = useState(120);
+    const [timeLeft, setTimeLeft] = useState(null);
     const [isTimeUp, setIsTimeUp] = useState(false);
 
     const playerId = window.localStorage.getItem('playerId');
