@@ -94,8 +94,8 @@ io.on("connection", (socket) => {
             const timeoutId = setTimeout(() => {
                 const currentPlayers = roomManager.getRoom(roomId);
                 if (currentPlayers) {
-                    const winner = currentPlayers.find(p => !p.isIt);
-                    io.to(roomId).emit("game-over", { winnerName: winner?.playerId || "Unknown" });
+                    const loser = currentPlayers.find(p => p.isIt);
+                    io.to(roomId).emit("game-over", { loserName: loser?.playerId || "Unknown" });
                     roomTimers.delete(roomId);
                     roomEndTimes.delete(roomId);
                 }

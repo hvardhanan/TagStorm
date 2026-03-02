@@ -7,7 +7,7 @@ export function useRoom(roomId, playerId) {
     const [error, setError] = useState(null);
     const [gameStarted, setGameStarted] = useState(false);
     const [endTime, setEndTime] = useState(null);
-    const [winner, setWinner] = useState(null);
+    const [loser, setLoser] = useState(null);
 
     const roomIdRef = useRef(roomId);
     const playerIdRef = useRef(playerId);
@@ -30,8 +30,8 @@ export function useRoom(roomId, playerId) {
         setGameStarted(true);
     }, []);
 
-    const handleGameOver = useCallback(({ winnerName }) => {
-        setWinner(winnerName);
+    const handleGameOver = useCallback(({ loserName }) => {
+        setLoser(loserName);
     }, []);
 
 
@@ -89,7 +89,7 @@ export function useRoom(roomId, playerId) {
         error,
         gameStarted,
         endTime,
-        winner,
+        loser,
         startGame,
         leaveRoom,
     };

@@ -39,7 +39,7 @@ export const Play = () => {
         error,
         gameStarted,
         endTime,
-        winner,
+        loser,
         startGame,
         leaveRoom,
     } = useRoom(roomId, playerId);
@@ -64,10 +64,10 @@ export const Play = () => {
     }, [gameStarted, endTime]);
 
     useEffect(() => {
-        if (winner) {
+        if (loser) {
             setIsTimeUp(true);
         }
-    }, [winner]);
+    }, [loser]);
 
     const handleLeave = () => {
         window.localStorage.removeItem('selectedMap');
@@ -103,10 +103,10 @@ export const Play = () => {
                 isTimeUp && (
                     <Card className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-md">
                         <CardHeader>
-                            <CardTitle>Winner 👑</CardTitle>
+                            <CardTitle>Loser 😭</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="text-xl font-bold text-center mb-4">{winner}</p>
+                            <p className="text-xl font-bold text-center mb-4">{loser}</p>
                             <p className="text-muted-foreground text-center text-sm">Start a new session and invite others</p>
                         </CardContent>
                     </Card>
