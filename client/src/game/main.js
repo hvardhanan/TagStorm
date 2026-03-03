@@ -28,7 +28,7 @@ const StartGame = (parent, sceneKey) => {
         physics: {
             default: 'arcade',
             arcade: {
-                debug: true,
+                debug: false,
                 gravity: { y: 1000 },
             }
         },
