@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/8bit/card";
 import { Button } from "@/components/ui/8bit/button";
 import { Input } from "@/components/ui/8bit/input";
+import { Menu } from "@/components/menu/menu";
 
 import axios from "axios";
 
@@ -92,28 +93,44 @@ export const HomeComponent = () => {
         }
     }
 
+    const CustomImageCard = ({ title, description, onClick }) => (
+        <div 
+            className="relative w-md h-96 flex flex-col items-center justify-center cursor-pointer hover:scale-[1.02] transition-transform group"
+            onClick={onClick}
+        >
+            <img 
+                src="/assets/images/cardbg.png" 
+                alt="card background" 
+                className="absolute inset-0 w-full h-full object-stretch z-0 opacity-90 group-hover:opacity-100 transition-opacity"
+            />
+            <div className="relative z-10 px-10 text-center">
+                <h2 className="text-2xl font-bold mb-2 text-white drop-shadow-md">
+                    {title}
+                </h2>
+                <p className="text-sm text-gray-200">
+                    {description}
+                </p>
+            </div>
+        </div>
+    );
+
     return (
         <div className="flex flex-col items-center justify-center min-h-screen gap-8">
-            <h1 className="text-white text-4xl">Welcome  to  the  Workspace</h1>
-
+            <div>
+                <Menu />
+            </div>
             <div className="flex flex-row gap-6 justify-center">
-                <Card className="cursor-pointer hover:opacity-80 transition-opacity w-md" onClick={handleCreateRoom}>
-                    <CardHeader>
-                        <CardTitle>➕ Create Room</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p>Start a new session and invite others</p>
-                    </CardContent>
-                </Card>
+                <CustomImageCard
+                    title="Create Room" 
+                    description="Start a new session and invite others" 
+                    onClick={handleCreateRoom}
+                />
 
-                <Card className="cursor-pointer hover:opacity-80 transition-opacity w-md" onClick={handleJoinRoomClick}>
-                    <CardHeader>
-                        <CardTitle>👥 Join Room</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <p>Enter an existing ID to join a session</p>
-                    </CardContent>
-                </Card>
+                <CustomImageCard 
+                    title="Join Room" 
+                    description="Enter an existing ID to join a session" 
+                    onClick={handleJoinRoomClick}
+                />
             </div>
 
             {createUserModalOpen && (
