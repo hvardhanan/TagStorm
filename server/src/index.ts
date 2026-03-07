@@ -6,6 +6,8 @@ import { roomManager } from './roomManager/index.js';
 import { room } from './routes/room.js';
 import { user } from './routes/user.js';
 import dotenv from 'dotenv';
+import { RoomStatus } from './types/index.js';
+import type { JoinRoomType } from './types/index.js';
 
 dotenv.config();
 
@@ -17,8 +19,7 @@ app.use('/api/room', room);
 app.use('/api/user', user);
 
 const roomTimers = new Map();
-const roomEndTimes = new Map();
-const playerLastUpdate = new Map(); // Track last update time per player
+const playerLastUpdate = new Map();
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
@@ -27,27 +28,81 @@ const io = new Server(httpServer, {
     }
 })
 
+const handleGameOver = (roomId: string) => {
+    try {
+        const room = roomManager.getRoom(roomId);
+
+        if (!room) {
+            console.log(`[Game Over] Room ${roomId} no longer exists.`);
+            return;
+        }
+        const loser = room.players.find(p => p.isIt);
+
+        const gameOverData = {
+            loserId: loser ? loser.playerId : null,
+            roomStats: {
+                totalPlayers: room.players.length,
+                duration: "2:00"
+            }
+        };
+
+        io.to(roomId).emit("game-over", gameOverData);
+
+        room.status = RoomStatus.LOBBY;
+        room.endTime = undefined;
+        room.currentItId = null;
+
+        room.players.forEach(p => {
+            p.isIt = false;
+        });
+
+        roomTimers.delete(roomId);
+
+        io.to(roomId).emit("update-players", room);
+
+        console.log(`[Game Over] Room ${roomId} finished. Loser: ${gameOverData.loserId}`);
+    } catch (error) {
+        console.error(`Error in handleGameOver for room ${roomId}:`, error);
+    }
+};
+
 io.on("connection", (socket) => {
     console.log("Player connected:", socket.id);
     const socketUpdateKey = `${socket.id}-updateTime`;
     playerLastUpdate.set(socketUpdateKey, 0);
+    socket.currentRoom = null;
 
-    socket.on("joinRoom", ({ roomId, playerId }) => {
+    socket.on("create-room", ({ roomId, playerId }) => {
+        const room = roomManager.createRoom(roomId, playerId, socket.id);
+        socket.join(roomId);
+        socket.emit("room-created", room);
+    });
+
+    socket.on("joinRoom", ({ roomId, playerId }: JoinRoomType) => {
         try {
-            // console.log(`Player ${playerId} is attempting to join room ${roomId}`); 
-            const isRoomExists = roomManager.getRoom(roomId);
-            if (!isRoomExists) {
-                socket.emit("error", { error: "Room does not exist" });
-                return;
-            }
-            roomManager.joinRoom(roomId, playerId, socket.id);
+            const room = roomManager.joinRoom(roomId, playerId, socket.id)
             socket.join(roomId);
+            socket.currentRoom = roomId;
+
             const roomDetails = roomManager.getRoom(roomId);
             io.to(roomId).emit("update-players", roomDetails);
+
+            if (room.status === RoomStatus.PLAYING && room.endTime) {
+                socket.emit("game-start", {
+                    roomId,
+                    endTime: room.endTime
+                })
+                if (room.currentItId) {
+                    const itPlayer = room.players.find(p => p.playerId === room.currentItId);
+                    if (itPlayer) {
+                        socket.emit("tag-update", { itSocketId: itPlayer.socketId });
+                    }
+                }
+            }
         }
-        catch (error) {
+        catch (error: any) {
             console.error("Error joining room:", error);
-            socket.emit("error", { error: "An error occurred while joining the room" });
+            socket.emit("error", { error: error.message });
         }
     })
 
@@ -73,10 +128,10 @@ io.on("connection", (socket) => {
         const now = Date.now();
         const socketUpdateKey = `${socket.id}-updateTime`;
         const lastUpdate = playerLastUpdate.get(socketUpdateKey) || 0;
-        
+
         // Rate limit: only allow updates every 50ms (20 updates/second)
         if (now - lastUpdate < 50) return;
-        
+
         const updated = roomManager.updatePosition(roomId, socket.id, x, y);
         if (updated) {
             playerLastUpdate.set(socketUpdateKey, now);
@@ -84,53 +139,30 @@ io.on("connection", (socket) => {
         }
     })
 
-    socket.on("start-game", ({ roomId }) => {
+    socket.on("start-game", ({ roomId, playerId }) => {
         try {
-            if (roomTimers.has(roomId)) return;
-
-            const players = roomManager.getRoom(roomId);
-            if (!players) {
+            const room = roomManager.getRoom(roomId);
+            if (!room) {
                 socket.emit("error", { error: "Room does not exist" });
                 return;
             }
-            const sender = players.find(p => p.socketId === socket.id);
-            if (!sender?.admin) {
-                socket.emit("error", { error: "Only the host can start the game" });
+
+            if (playerId !== room?.adminId) {
+                socket.emit("error", { error: "Only admin can start the game" });
                 return;
             }
-            const timeLeft = 120_000;
-            const endTime = timeLeft + Date.now();
-            io.to(roomId).emit("game-start", { roomId, endTime });
-            console.log(`[DEBUG] Setting timeout for room ${roomId}, will fire in ${timeLeft}ms`);
+            room.status = RoomStatus.PLAYING;
+            room.endTime = Date.now() + 120_000;
 
-            const timeoutId = setTimeout(() => {
-                console.log(`[DEBUG] Timeout callback fired for room ${roomId}`);
-                const currentPlayers = roomManager.getRoom(roomId);
-                console.log(`[DEBUG] Current players for room ${roomId}:`, currentPlayers);
-                if (currentPlayers) {
-                    const loser = currentPlayers.find(p => p.isIt);
-                    const loserName = loser?.playerId || "Unknown";
-                    console.log(`[Game Over] Room ${roomId}: Loser = ${loserName}, Player object:`, loser);
-                    io.to(roomId).emit("game-over", { loserName });
-                    roomTimers.delete(roomId);
-                    roomEndTimes.delete(roomId);
-                } else {
-                    console.log(`[Game Over] Room ${roomId} not found when timeout fired!`);
-                }
-            }, timeLeft);
+            const timer = setTimeout(() => {
+                handleGameOver(roomId)
+            }, 120_000)
 
-            roomTimers.set(roomId, timeoutId);
-            roomEndTimes.set(roomId, endTime);
+            roomTimers.set(roomId, timer)
+            io.to(roomId).emit("update-players", room);
+            io.to(roomId).emit("game-start", { roomId, endTime: room.endTime });
+            return;
 
-            // Assign a random player as "it"
-            const randomIndex = Math.floor(Math.random() * players.length);
-            for (let i = 0; i < players.length; i++) {
-                players[i]!.isIt = (i === randomIndex);
-            }
-            const itSocketId = players[randomIndex]!.socketId;
-            io.to(roomId).emit("tag-update", { itSocketId });
-
-            console.log(`Game started in room ${roomId} by ${sender.playerId}. ${itSocketId} is "it". End time: ${endTime}`);
         } catch (error) {
             console.error("Error starting game:", error);
             socket.emit("error", { error: "An error occurred while starting the game" });
@@ -138,9 +170,11 @@ io.on("connection", (socket) => {
     })
 
     socket.on("request-tag-status", ({ roomId }) => {
-        const players = roomManager.getRoom(roomId);
-        if (!players) return;
-        const itPlayer = players.find(p => p.isIt);
+        const room = roomManager.getRoom(roomId);
+        if (!room) {
+            socket.emit("error", { error: "Room does not exist" });
+        }
+        const itPlayer = room?.players.find(p => p.isIt)
         if (itPlayer) {
             socket.emit("tag-update", { itSocketId: itPlayer.socketId });
         }
@@ -148,23 +182,25 @@ io.on("connection", (socket) => {
 
     socket.on("tag", ({ roomId, taggedSocketId }) => {
         try {
-            const players = roomManager.getRoom(roomId);
-            if (!players) return;
-
-            // Verify the sender is actually "it"
-            const tagger = players.find(p => p.socketId === socket.id);
+            const room = roomManager.getRoom(roomId);
+            if (!room) {
+                socket.emit("error", { error: "Room does not exist" });
+                return;
+            }
+            if (room?.players.length === 0) {
+                socket.emit("error", { error: "No players in the room" });
+                return;
+            }
+            const tagger = room.players.find(p => p.socketId === socket.id);
             if (!tagger?.isIt) return;
 
-            // Verify the tagged player exists in the room
-            const tagged = players.find(p => p.socketId === taggedSocketId);
+            const tagged = room.players.find(p => p.socketId === taggedSocketId);
             if (!tagged) return;
 
-            // Transfer "it" status
-            for (const p of players) {
+            for (const p of room.players) {
                 p.isIt = (p.socketId === taggedSocketId);
             }
 
-            // Broadcast to everyone in the room
             io.to(roomId).emit("tag-update", { itSocketId: taggedSocketId });
             console.log(`[Tag] ${socket.id} tagged ${taggedSocketId} in room ${roomId}`);
         } catch (error) {
@@ -173,30 +209,15 @@ io.on("connection", (socket) => {
     })
 
     socket.on("disconnect", () => {
-        console.log("Player disconnected:", socket.id);
-        const socketUpdateKey = `${socket.id}-updateTime`;
-        playerLastUpdate.delete(socketUpdateKey);
-        try {
-            const allRooms = roomManager.getRooms();
-            allRooms.forEach((players, roomId) => {
-                const playerIndex = players.findIndex(p => p.socketId === socket.id);
+        const roomId = socket.currentRoom;
+        if (!roomId) return;
 
-                if (playerIndex !== -1) {
-                    const playerId = players[playerIndex]?.playerId;
-                    if (!playerId) {
-                        console.warn(`Player with socket ID ${socket.id} has no associated playerId. Skipping cleanup.`);
-                        return;
-                    }
-                    console.log(`Auto-removing player ${playerId} from room ${roomId}`);
-                    roomManager.exitRoom(roomId, playerId, socket.id);
-                    const updatedRoomDetails = roomManager.getRoom(roomId);
-                    if (updatedRoomDetails) {
-                        io.to(roomId).emit("update-players", updatedRoomDetails);
-                    }
-                }
-            });
-        } catch (error) {
-            console.error("Error during disconnect cleanup:", error);
+        const updatedRoom = roomManager.handleDisconnect(roomId, socket.id);
+
+        if (updatedRoom) {
+            io.to(roomId).emit("update-players", updatedRoom);
+        } else {
+            roomTimers.delete(roomId);
         }
     });
 });
