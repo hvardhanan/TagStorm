@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/card";
 
 import "@/components/ui/8bit/styles/retro.css";
+import React from "react";
 
 export const cardVariants = cva("", {
   variants: {

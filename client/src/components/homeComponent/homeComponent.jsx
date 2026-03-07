@@ -93,24 +93,23 @@ export const HomeComponent = () => {
         }
     }
 
-    const CustomImageCard = ({ title, description, onClick }) => (
+    const CustomImageCard = ({ title, description, onClick, buttonContent }) => (
         <div 
-            className="relative w-md h-96 flex flex-col items-center justify-center cursor-pointer hover:scale-[1.02] transition-transform group"
-            onClick={onClick}
+            className="relative w-md h-96 flex flex-col items-center justify-center hover:scale-[1.02] transition-transform group"
         >
-            <img 
-                src="/assets/images/cardbg.png" 
-                alt="card background" 
-                className="absolute inset-0 w-full h-full object-stretch z-0 opacity-90 group-hover:opacity-100 transition-opacity"
-            />
-            <div className="relative z-10 px-10 text-center">
-                <h2 className="text-2xl font-bold mb-2 text-white drop-shadow-md">
-                    {title}
-                </h2>
-                <p className="text-sm text-gray-200">
-                    {description}
-                </p>
-            </div>
+            <Card className="px-5 pt-4">
+                <CardHeader className="text-center">
+                    <CardTitle className="text-xl">{title}</CardTitle>
+                </CardHeader>
+                <CardContent className="mt-4">
+                    <p className="text-sm text-center">{description}</p>
+                </CardContent>
+                <CardFooter className="mx-auto pb-7">
+                    <Button className="px-5 py-5 cursor-pointer" onClick={onClick}>
+                        {buttonContent}
+                    </Button>
+                </CardFooter>
+            </Card>
         </div>
     );
 
@@ -121,36 +120,38 @@ export const HomeComponent = () => {
             </div>
             <div className="flex flex-row gap-6 justify-center">
                 <CustomImageCard
-                    title="Create Room" 
+                    title="HOST" 
                     description="Start a new session and invite others" 
+                    buttonContent="Create Room"
                     onClick={handleCreateRoom}
                 />
 
                 <CustomImageCard 
-                    title="Join Room" 
+                    title="JOIN" 
                     description="Enter an existing ID to join a session" 
+                    buttonContent="Join Now"
                     onClick={handleJoinRoomClick}
                 />
             </div>
 
             {createUserModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <Card className="w-xl">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-lg">
+                    <Card className="w-xl px-5 pt-4">
                         <CardHeader>
-                            <CardTitle>Create a User</CardTitle>
+                            <CardTitle className="text-center text-xl">CREATE A USER</CardTitle>
                         </CardHeader>
                         <CardContent>
-                            <p className="mb-5">Please create a user profile before creating a room</p>
+                            <p className="mb-5 text-[13px] text-center text-white/60">Please create a user profile before creating a room</p>
                             <Input
                                 type="text"
                                 onChange={(e) => setUsername(e.target.value)}
                                 value={username}
                                 placeholder="Enter Username"
-                                className="border border-border bg-input px-3 py-2 w-full"
+                                className="border border-border bg-input px-3 py-5 w-full"
                                 autoFocus
                             />
                         </CardContent>
-                        <CardFooter className="flex flex-row gap-2 justify-end">
+                        <CardFooter className="flex flex-row gap-2 justify-end pb-7">
                             <Button
                                 type="button"
                                 className="bg-secondary text-secondary-foreground px-4 py-2"
@@ -171,10 +172,10 @@ export const HomeComponent = () => {
             )}
 
             {isModalOpen && (
-                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-                    <Card className="w-xl">
+                <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 backdrop-blur-lg">
+                    <Card className="w-xl px-5 pt-4">
                         <CardHeader>
-                            <CardTitle>Join a Room</CardTitle>
+                            <CardTitle className="text-center text-xl">JOIN</CardTitle>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={handleJoinRoomSubmit} className="flex flex-col gap-4">
@@ -183,12 +184,12 @@ export const HomeComponent = () => {
                                     placeholder="Enter Room ID..."
                                     value={roomId}
                                     onChange={(e) => setRoomId(e.target.value)}
-                                    className="border border-border bg-input px-3 py-2 w-full"
+                                    className="border border-border bg-input px-3 py-5 w-full"
                                     autoFocus
                                 />
                             </form>
                         </CardContent>
-                        <CardFooter className="flex flex-row gap-2 justify-end">
+                        <CardFooter className="flex flex-row gap-2 justify-end pb-7">
                             <Button
                                 type="button"
                                 className="bg-secondary text-secondary-foreground px-4 py-2"
