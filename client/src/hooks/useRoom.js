@@ -1,12 +1,18 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { socketManager } from "@/socket/socketManager";
 
+const roomStateCache = {};
+
 export function useRoom(roomId, playerId) {
     const [players, setPlayers] = useState([]);
     const [isConnected, setIsConnected] = useState(false);
     const [error, setError] = useState(null);
-    const [gameStarted, setGameStarted] = useState(false);
-    const [endTime, setEndTime] = useState(null);
+    const [gameStarted, setGameStarted] = useState(
+        () => roomStateCache[roomId]?.gameStarted ?? false
+    );
+    const [endTime, setEndTime] = useState(
+        () => roomStateCache[roomId]?.endTime ?? null
+    );
     const [loser, setLoser] = useState(null);
 
     const roomIdRef = useRef(roomId);
@@ -16,7 +22,9 @@ export function useRoom(roomId, playerId) {
 
 
     const handleUpdatePlayers = useCallback((roomDetails) => {
-        if (Array.isArray(roomDetails)) {
+        if (roomDetails && Array.isArray(roomDetails.players)) {
+            setPlayers(roomDetails.players);
+        } else if (Array.isArray(roomDetails)) {
             setPlayers(roomDetails);
         }
     }, []);
@@ -29,6 +37,14 @@ export function useRoom(roomId, playerId) {
         setEndTime(endTime);
         setGameStarted(true);
     }, []);
+
+    useEffect(() => {
+        if (!roomId) return;
+        roomStateCache[roomId] = {
+            gameStarted,
+            endTime,
+        };
+    }, [roomId, gameStarted, endTime]);
 
     const handleGameOver = useCallback(({ loserName }) => {
         console.log('[useRoom] Game Over event received, loserName:', loserName);
@@ -60,22 +76,19 @@ export function useRoom(roomId, playerId) {
         socketManager.on("disconnect", () => setIsConnected(false));
 
         return () => {
-            socketManager.exitRoom(roomIdRef.current, playerIdRef.current);
             socketManager.off("connect", onConnect);
             socketManager.off("update-players", handleUpdatePlayers);
             socketManager.off("error", handleError);
             socketManager.off("game-start", handleGameStart);
             socketManager.off("game-over", handleGameOver);
-            socketManager.disconnect();
         };
     }, [roomId, playerId]);
 
     const currentPlayer = players.find((p) => p.playerId === playerId);
-    const isAdmin = currentPlayer?.admin ?? false;
+    const isAdmin = currentPlayer?.isAdmin ?? false;
 
     const startGame = useCallback(() => {
-        socketManager.emit("start-game", { roomId: roomIdRef.current });
-        setGameStarted(true);
+        socketManager.emit("start-game", { roomId: roomIdRef.current, playerId: playerIdRef.current });
     }, []);
 
     const leaveRoom = useCallback(() => {

@@ -101,7 +101,7 @@ export const Lobby = ({
                                                 {p.playerId}
                                             </span>
 
-                                            {p.admin && (
+                                            {p.isAdmin && (
                                                 <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 border border-primary/30">
                                                     👑 Host
                                                 </span>

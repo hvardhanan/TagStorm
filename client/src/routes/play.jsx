@@ -1,8 +1,7 @@
 import { PhaserGame } from '../PhaserGame';
 import { useRef, useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
-import { Lobby } from '../components/lobby/Lobby';
 import { MapSelection } from '../components/mapSelection/mapSelection';
 import { Card, CardContent, CardTitle, CardHeader } from '@/components/ui/card';
 
@@ -33,21 +32,38 @@ export const Play = () => {
     };
 
     const {
-        players,
-        isConnected,
-        isAdmin,
-        error,
         gameStarted,
         endTime,
         loser,
-        startGame,
-        leaveRoom,
     } = useRoom(roomId, playerId);
+
+    const location = useLocation();
+
+    // if someone somehow ends up on /room before the game has started we
+    // generally want to push them back to the lobby. however there are two
+    // perfectly valid cases where the hook's initial state will be false:
+    //  * the player is the host and they are just about to transition from
+    //    the lobby themselves
+    //  * the player just received the game-start event and we're
+    //    redirecting them; during the unmount/mount that value may go
+    //    briefly back to false before the cache is applied.
+    // we guard with navigation state so that bouncing doesn't kick in in
+    // those scenarios.
+    const cameFromLobby = location.state?.fromLobby;
+    useEffect(() => {
+        if (!gameStarted && !cameFromLobby) {
+            navigate(`/lobby/${roomId}`);
+        }
+    }, [gameStarted, navigate, roomId, cameFromLobby]);
 
     useEffect(() => {
         if (!gameStarted || !endTime) return;
 
-        const updateTimer = () => {
+        // create the interval first so the closure below has a valid
+        // reference. we also update the timer once immediately after
+        // setting it to avoid any race where the first tick would show
+        // "undefined" or otherwise nothing.
+        const timer = setInterval(() => {
             const now = Date.now();
             const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
             setTimeLeft(remaining);
@@ -55,10 +71,11 @@ export const Play = () => {
                 clearInterval(timer);
                 setIsTimeUp(true);
             }
-        };
+        }, 1000);
 
-        updateTimer();
-        const timer = setInterval(updateTimer, 1000);
+        // initial calculation
+        const now = Date.now();
+        setTimeLeft(Math.max(0, Math.floor((endTime - now) / 1000)));
 
         return () => clearInterval(timer);
     }, [gameStarted, endTime]);
@@ -70,31 +87,11 @@ export const Play = () => {
         }
     }, [loser]);
 
-    const handleLeave = () => {
-        window.localStorage.removeItem('selectedMap');
-        leaveRoom();
-        navigate('/');
-    };
-
     if (!selectedMap) {
         return (
             <div className="min-h-dvh flex items-center justify-center bg-black">
                 <MapSelection onMapSelect={handleMapSelect} />
             </div>
-        );
-    }
-
-    if (!gameStarted) {
-        return (
-            <Lobby
-                roomId={roomId}
-                players={players}
-                isAdmin={isAdmin}
-                isConnected={isConnected}
-                error={error}
-                onStart={startGame}
-                onLeave={handleLeave}
-            />
         );
     }
 

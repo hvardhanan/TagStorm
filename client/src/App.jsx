@@ -2,6 +2,7 @@ import { Routes, Route, BrowserRouter } from 'react-router-dom';
 import { Home } from './routes/home';
 import { Play } from './routes/play';
 import { Hero } from './routes/hero';
+import { Lobby } from './routes/lobby';
 import { MusicProvider } from '@/components/menu/musicContext';
 
 function App ()
@@ -12,6 +13,7 @@ function App ()
                 <Routes>
                     <Route path='/' element={<Hero />}></Route>
                     <Route path='/home' element={<Home />}></Route>
+                    <Route path='/lobby/:roomId' element={<Lobby />}></Route>
                     <Route path='/room/:roomId' element={<Play />}></Route>
                 </Routes>
             </BrowserRouter>

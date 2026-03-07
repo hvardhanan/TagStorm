@@ -63,7 +63,7 @@ export const HomeComponent = () => {
 
             if (res.status === 201) {
                 const { roomId } = res.data;
-                navigate(`/room/${roomId}`);
+                navigate(`/lobby/${roomId}`);
                 return;
             }
             else {
@@ -89,7 +89,7 @@ export const HomeComponent = () => {
     const handleJoinRoomSubmit = (e) => {
         e.preventDefault();
         if (roomId.trim()) {
-            navigate(`/room/${roomId}`);
+            navigate(`/lobby/${roomId}`);
         }
     }
 

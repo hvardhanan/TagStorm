@@ -1,1 +1,1 @@
-{"root":["./src/index.ts","./src/roomManager/index.ts","./src/routes/room.ts","./src/routes/user.ts","./src/types/index.ts","./src/types/socket.d.ts"],"errors":true,"version":"5.9.3"}
+{"root":["./src/index.ts","./src/roomManager/index.ts","./src/routes/room.ts","./src/routes/user.ts","./src/types/index.ts","./src/types/socket.d.ts"],"version":"5.9.3"}

@@ -44,6 +44,8 @@ export class BaseMap extends Scene {
         }
 
         this.player = new Player(this, spawnX, spawnY);
+        this.lastSentX = Math.round(this.player.sprite.x);
+        this.lastSentY = Math.round(this.player.sprite.y);
         collisionLayers.forEach(layer => {
             this.physics.add.collider(this.player.sprite, layer);
         });
@@ -142,10 +144,10 @@ export class BaseMap extends Scene {
 
         };
 
-        this._onPlayersUpdated = (playersList) => {
-            if (!Array.isArray(playersList)) return;
+        this._onPlayersUpdated = (room) => {
+            if (!room || !Array.isArray(room.players)) return;
 
-            const activeSocketIds = new Set(playersList.map(p => p.socketId));
+            const activeSocketIds = new Set(room.players.map(p => p.socketId));
             for (const [sid, sprite] of this.remotePlayers) {
                 if (!activeSocketIds.has(sid)) {
                     sprite.destroy();
@@ -204,7 +206,11 @@ export class BaseMap extends Scene {
         const x = Math.round(this.player.sprite.x);
         const y = Math.round(this.player.sprite.y);
 
-        socketManager.updatePosition(this.roomId, x, y);
+        if (x !== this.lastSentX || y !== this.lastSentY) {
+            socketManager.updatePosition(this.roomId, x, y);
+            this.lastSentX = x;
+            this.lastSentY = y;
+        }
         this._lastPositionUpdateTime = now;
     }
 

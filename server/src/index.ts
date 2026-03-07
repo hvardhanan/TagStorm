@@ -46,7 +46,9 @@ const handleGameOver = (roomId: string) => {
             }
         };
 
-        io.to(roomId).emit("game-over", gameOverData);
+        console.log(gameOverData)
+
+        io.to(roomId).emit("game-over", { loserName: gameOverData.loserId });
 
         room.status = RoomStatus.LOBBY;
         room.endTime = undefined;
@@ -71,12 +73,6 @@ io.on("connection", (socket) => {
     const socketUpdateKey = `${socket.id}-updateTime`;
     playerLastUpdate.set(socketUpdateKey, 0);
     socket.currentRoom = null;
-
-    socket.on("create-room", ({ roomId, playerId }) => {
-        const room = roomManager.createRoom(roomId, playerId, socket.id);
-        socket.join(roomId);
-        socket.emit("room-created", room);
-    });
 
     socket.on("joinRoom", ({ roomId, playerId }: JoinRoomType) => {
         try {
@@ -113,7 +109,7 @@ io.on("connection", (socket) => {
                 socket.emit("error", { error: "Room does not exist" });
                 return;
             }
-            roomManager.exitRoom(roomId, playerId, socket.id);
+            roomManager.exitRoom(roomId, socket.id, playerId);
             socket.leave(roomId);
             const roomDetails = roomManager.getRoom(roomId);
             io.to(roomId).emit("update-players", roomDetails);
@@ -142,6 +138,7 @@ io.on("connection", (socket) => {
     socket.on("start-game", ({ roomId, playerId }) => {
         try {
             const room = roomManager.getRoom(roomId);
+            const players = room?.players;
             if (!room) {
                 socket.emit("error", { error: "Room does not exist" });
                 return;
@@ -152,17 +149,26 @@ io.on("connection", (socket) => {
                 return;
             }
             room.status = RoomStatus.PLAYING;
-            room.endTime = Date.now() + 120_000;
+            room.endTime = Date.now() + 30_000;
 
             const timer = setTimeout(() => {
                 handleGameOver(roomId)
-            }, 120_000)
+            }, 30_000)
 
             roomTimers.set(roomId, timer)
+            let itSocketId = null;
+            if(players){
+                const randomIndex = Math.floor(Math.random() * players.length);
+                for (let i = 0; i < players.length; i++) {
+                    players[i]!.isIt = (i === randomIndex);
+                }
+                itSocketId = players[randomIndex]!.socketId;
+                io.to(roomId).emit("tag-update", { itSocketId });
+            }
+            console.log(`Game started in room ${roomId} by ${room.adminId}. ${itSocketId} is "it".`);
             io.to(roomId).emit("update-players", room);
             io.to(roomId).emit("game-start", { roomId, endTime: room.endTime });
             return;
-
         } catch (error) {
             console.error("Error starting game:", error);
             socket.emit("error", { error: "An error occurred while starting the game" });
@@ -209,8 +215,10 @@ io.on("connection", (socket) => {
     })
 
     socket.on("disconnect", () => {
+        console.log("handle disconnect event gets called")
         const roomId = socket.currentRoom;
         if (!roomId) return;
+        console.log("handle disconnect event gets called after return")
 
         const updatedRoom = roomManager.handleDisconnect(roomId, socket.id);
 

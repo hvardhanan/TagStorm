@@ -8,22 +8,14 @@ export class RoomManager {
         this.rooms = new Map();
     }
 
-    createRoom(roomId: string, adminPlayerId: string, adminSocketId: string) {
+    createRoom(roomId: string, adminPlayerId: string) {
         const newRoom: Room = {
             roomId,
             adminId: adminPlayerId,
             status: RoomStatus.LOBBY,
             selectedMap: null,
             currentItId: null,
-            players: [{
-                playerId: adminPlayerId,
-                socketId: adminSocketId,
-                isAdmin: true,
-                x: 0,
-                y: 0,
-                isIt: false,
-                isConnected: true,
-            }]
+            players: []
         };
         this.rooms.set(roomId, newRoom);
         return newRoom;
