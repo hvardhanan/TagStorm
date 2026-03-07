@@ -36,9 +36,13 @@ export const Hero = () => {
             </div>
             <div className="absolute inset-0 bg-black/40 z-10" />
             <div className="relative z-20 flex flex-col items-center">
-                <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-8 text-white drop-shadow-2xl">
+                <img src="/assets/images/8bitcharacter.png" alt="sprite" className='size-72' />
+                <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-8 text-white drop-shadow-2xl mt-5">
                     Tag Storm
                 </h1>
+                <p className="text-lg md:text-lg font-bold tracking-tighter mb-8 text-white/60 drop-shadow-2xl">
+                    A real-time multiplayer tag game
+                </p>
                 <Button 
                     className="hover:cursor-pointer px-10 py-6 shadow-2xl transition-transform hover:scale-105" 
                     onClick={() => navigate("/home")}
