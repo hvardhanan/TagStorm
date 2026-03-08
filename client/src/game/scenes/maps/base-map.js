@@ -54,8 +54,10 @@ export class BaseMap extends Scene {
         collisionLayers.forEach(layer => {
             this.physics.add.collider(this.player.sprite, layer);
         });
+        this.physics.world.setFPS(60);
         this.cameras.main.startFollow(this.player.sprite, true, 0.05, 0.05);
         this.cameras.main.setBounds(0, 0, map.widthInPixels, map.heightInPixels);
+        this.cameras.main.setZoom(1.2)
         this.cameras.main.setRoundPixels(true);
 
         this.roomId = this.registry.get('roomId');

@@ -149,11 +149,11 @@ io.on("connection", (socket) => {
                 return;
             }
             room.status = RoomStatus.PLAYING;
-            room.endTime = Date.now() + 30_000;
+            room.endTime = Date.now() + 120_000;
 
             const timer = setTimeout(() => {
                 handleGameOver(roomId)
-            }, 30_000)
+            }, 120_000)
 
             roomTimers.set(roomId, timer)
             let itSocketId = null;
@@ -215,10 +215,8 @@ io.on("connection", (socket) => {
     })
 
     socket.on("disconnect", () => {
-        console.log("handle disconnect event gets called")
         const roomId = socket.currentRoom;
         if (!roomId) return;
-        console.log("handle disconnect event gets called after return")
 
         const updatedRoom = roomManager.handleDisconnect(roomId, socket.id);
 

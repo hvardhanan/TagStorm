@@ -19,6 +19,7 @@ const StartGame = (parent, sceneKey) => {
     const config = {
         type: Phaser.AUTO,
         width: window.innerWidth,
+        antialias:false,
         height: window.innerHeight,
         backgroundColor: '#000000',
         parent,
