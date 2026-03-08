@@ -2,10 +2,18 @@ import { useEffect, useState } from 'react';
 import { Button } from '@/components/ui/8bit/button';
 import { useNavigate } from 'react-router-dom';
 import { Menu } from '@/components/menu/menu';
+import { Skeleton } from "@/components/ui/8bit/skeleton"
 
 export const Hero = () => {
     const navigate = useNavigate(null);
     const [isMobile, setIsMobile] = useState(false);
+    const [imageLoaded, setImageLoaded] = useState(false);
+
+    useEffect(() => {
+        const img = new Image();
+        img.src = "/assets/images/8bitcharacter.png";
+        img.onload = () => setImageLoaded(true);
+    }, []);
 
     useEffect(() => {
         const userAgent = navigator.userAgent || navigator.vendor || window.opera;
@@ -26,17 +34,19 @@ export const Hero = () => {
 
     return (
         <div className="relative flex flex-col items-center justify-center min-h-screen w-full overflow-hidden px-4 text-center">
-            {/* <img 
-                src="/assets/maps/dungeon.png" 
-                alt="dungeon" 
-                className="absolute inset-0 w-full h-full object-cover z-0"
-            /> */}
             <div>
                 <Menu />
             </div>
             <div className="absolute inset-0 bg-black/40 z-10" />
             <div className="relative z-20 flex flex-col items-center">
-                <img src="/assets/images/8bitcharacter.png" alt="sprite" className='size-72' />
+                {!imageLoaded && (
+                    <Skeleton className="size-72 rounded-lg bg-white/10" />
+                )}
+                <img 
+                    src="/assets/images/8bitcharacter.png" 
+                    alt="sprite" 
+                    className={`size-72 transition-opacity duration-500 ${imageLoaded ? 'opacity-100' : 'opacity-0 absolute'}`} 
+                />
                 <h1 className="text-5xl md:text-7xl font-bold tracking-tighter mb-8 text-white drop-shadow-2xl mt-5">
                     Tag Storm
                 </h1>
