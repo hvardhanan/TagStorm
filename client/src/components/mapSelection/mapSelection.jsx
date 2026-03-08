@@ -8,7 +8,6 @@ import {
   CardTitle,
 } from "@/components/ui/8bit/card";
 
-// Internal component to manage the image loading state per map
 const MapImage = ({ src, alt }) => {
     const [isLoaded, setIsLoaded] = useState(false);
 
@@ -66,7 +65,6 @@ export const MapSelection = ({ onMapSelect }) => {
                     );
                 })}
 
-                {/* Coming Soon Card */}
                 <div className="relative w-full max-w-sm h-[320px] opacity-40 grayscale pointer-events-none">
                     <Card className="px-5 pt-4 border-dashed border-white/20 h-full">
                         <CardHeader className="pb-2">
