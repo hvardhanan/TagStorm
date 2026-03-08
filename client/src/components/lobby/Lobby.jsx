@@ -38,13 +38,13 @@ export const Lobby = ({
 
     return (
         <div className="fixed inset-0 bg-black flex items-center justify-center z-50">
-            <div className="flex flex-col items-center gap-6 w-full max-w-lg px-4">
-                <Card className="w-full">
-                    <CardHeader>
-                        <CardTitle className="text-xl">
+            <div className="flex flex-col items-center gap-6 w-full max-w-xl px-4">
+                <Card className="w-full px-5 pt-5">
+                    <CardHeader className="pb-2">
+                        <CardTitle className="text-lg uppercase text-center w-full text-primary">
                             Room Lobby
                         </CardTitle>
-                        <CardDescription>
+                        <CardDescription className="py-2 text-center">
                             {isConnected
                                 ? "Connected to server"
                                 : "Connecting…"}
@@ -102,8 +102,11 @@ export const Lobby = ({
                                             </span>
 
                                             {p.isAdmin && (
-                                                <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 border border-primary/30">
-                                                    👑 Host
+                                                <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 border border-primary/30 inline-flex items-center space-x-2">
+                                                    <span className="">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-crown-icon lucide-crown"><path d="M11.562 3.266a.5.5 0 0 1 .876 0L15.39 8.87a1 1 0 0 0 1.516.294L21.183 5.5a.5.5 0 0 1 .798.519l-2.834 10.246a1 1 0 0 1-.956.734H5.81a1 1 0 0 1-.957-.734L2.02 6.02a.5.5 0 0 1 .798-.519l4.276 3.664a1 1 0 0 0 1.516-.294z"/><path d="M5 21h14"/></svg>
+                                                    </span>
+                                                    <span>Host</span>
                                                 </span>
                                             )}
                                         </li>
@@ -127,8 +130,9 @@ export const Lobby = ({
                         )}
                     </CardContent>
 
-                    <CardFooter className="flex flex-row gap-3 justify-end">
+                    <CardFooter className="flex flex-row gap-3 justify-end pb-5">
                         <Button
+                            className="p-5"
                             variant="outline"
                             onClick={onLeave}
                         >
@@ -141,11 +145,14 @@ export const Lobby = ({
                                 onClick={onStart}
                                 className={
                                     !canStart
-                                        ? "opacity-50 cursor-not-allowed"
+                                        ? "opacity-50 cursor-not-allowed p-5"
                                         : ""
                                 }
                             >
-                                🎮 Start Game
+                                <span className="mr-1">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play-icon lucide-play"><path d="M5 5a2 2 0 0 1 3.008-1.728l11.997 6.998a2 2 0 0 1 .003 3.458l-12 7A2 2 0 0 1 5 19z"/></svg>
+                                </span>
+                                Start Game
                             </Button>
                         )}
                     </CardFooter>
