@@ -149,7 +149,7 @@ io.on("connection", (socket) => {
                 return;
             }
             room.status = RoomStatus.PLAYING;
-            room.endTime = Date.now() + 10_000;
+            room.endTime = Date.now() + 120_000;
 
             const nonReadyPlayers = room.players.filter(p => !p.isReady);
             room.players = room.players.filter(p => p.isReady);
@@ -167,7 +167,7 @@ io.on("connection", (socket) => {
 
             const timer = setTimeout(() => {
                 handleGameOver(roomId)
-            }, 10_000)
+            }, 120_000)
 
             roomTimers.set(roomId, timer)
             let itSocketId = null;
