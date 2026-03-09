@@ -3,7 +3,8 @@ import { useRef, useState, useEffect } from 'react';
 import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { useRoom } from '../hooks/useRoom';
 import { MapSelection } from '../components/mapSelection/mapSelection';
-import { Card, CardContent, CardTitle, CardHeader } from '@/components/ui/card';
+import { motion } from 'motion/react';
+import { Button } from '@/components/ui/8bit/button';
 
 export const Play = () => {
     const phaserRef = useRef();
@@ -34,7 +35,10 @@ export const Play = () => {
     const {
         gameStarted,
         endTime,
-        loser,
+        gameOverDetails,
+        isAdmin,
+        resetRoomState,
+        leaveRoom
     } = useRoom(roomId, playerId);
 
     const location = useLocation();
@@ -81,11 +85,31 @@ export const Play = () => {
     }, [gameStarted, endTime]);
 
     useEffect(() => {
-        if (loser) {
-            console.log('[Play] Loser updated:', loser);
+        if (gameOverDetails) {
+            console.log('[Play] Loser updated:', gameOverDetails.loserId);
             setIsTimeUp(true);
         }
-    }, [loser]);
+    }, [gameOverDetails]);
+
+    const handleRematch = () => {
+        // Reset game state for rematch but keep the selected map
+        setTimeLeft(null);
+        setIsTimeUp(false);
+        resetRoomState();
+
+        // Navigate to lobby and wait for admin to start new game
+        navigate(`/lobby/${roomId}`, { state: { fromRematch: true } });
+    };
+
+    const handleLeaveRoom = () => {
+        // Clean up and return to home
+        setTimeLeft(null);
+        setIsTimeUp(false);
+        setSelectedMap(null);
+        window.localStorage.removeItem('selectedMap');
+        leaveRoom();
+        navigate('/');
+    };
 
     if (!selectedMap) {
         return (
@@ -98,20 +122,64 @@ export const Play = () => {
     return (
         <div>
             {
-                isTimeUp && (
-                    <Card className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-md z-50">
-                        <CardHeader>
-                            <CardTitle>Loser 😭</CardTitle>
-                        </CardHeader>
-                        <CardContent>
-                            <p className="text-xl font-bold text-center mb-4">{loser || 'Loading...'}</p>
-                            <p className="text-muted-foreground text-center text-sm">Start a new session and invite others</p>
-                        </CardContent>
-                    </Card>
+                isTimeUp ? (
+                    <div className="h-screen w-screen flex flex-col items-center gap-8 animate-in fade-in zoom-in duration-300 md:py-[5%]">
+                        <motion.div
+                            animate={{ y: [0, -15, 0], opacity: [0.8, 1, 0.8] }}
+                            transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                            className="relative w-32 h-32"
+                        >
+                            <div className="absolute inset-0 bg-slate-200 pixel-border" style={{ clipPath: 'polygon(20% 0%, 80% 0%, 80% 20%, 100% 20%, 100% 60%, 80% 60%, 80% 80%, 100% 80%, 100% 100%, 80% 100%, 80% 80%, 60% 80%, 60% 100%, 40% 100%, 40% 80%, 20% 80%, 20% 100%, 0% 100%, 0% 80%, 20% 80%, 20% 60%, 0% 60%, 0% 20%, 20% 20%)' }}>
+                                <div className="absolute top-1/3 left-1/4 w-3 h-3 bg-black" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 0, 0 100%)' }} />
+                                <div className="absolute top-1/3 right-1/4 w-3 h-3 bg-black" style={{ clipPath: 'polygon(0 0, 100% 100%, 100% 0, 0 100%)' }} />
+                            </div>
+                        </motion.div>
+                        <div className="text-center space-y-2">
+                            <h1 className="text-5xl md:text-7xl text-[#8b0000] tracking-widest uppercase drop-shadow-[0_4px_0_rgba(0,0,0,1)]">
+                                MATCH OVER
+                            </h1>
+                        </div>
+                        <div className="max-w-xl bg-[#1a1a1a] p-8 w-full pixel-border text-center space-y-8 mt-4">
+                            <div className="space-y-4">
+                                <h2 className="text-2xl md:text-3xl text-white leading-relaxed">
+                                    <span className="text-blue-400">{gameOverDetails?.loserId}</span><br />WAS IT!
+                                </h2>
+                                <p className="text-[10px] text-slate-400 leading-relaxed">
+                                    THEY RAN OUT OF TIME BEFORE TAGGING ANYONE.
+                                </p>
+                            </div>
+                            <div className="grid grid-cols-2 gap-y-6 gap-x-4 text-[10px] text-left bg-black p-6 pixel-border">
+                                <div className="text-slate-500">MATCH TIME:</div>
+                                <div className="text-emerald-400 text-right">{gameOverDetails?.roomStats?.duration}</div>
+                                <div className="text-slate-500">Total Players</div>
+                                <div className="text-emerald-400 text-right">{gameOverDetails?.roomStats?.totalPlayers}</div>
+                            </div>
+                            <div className="flex flex-col sm:flex-row gap-6 pt-4 justify-end">
+                                <Button
+                                    onClick={handleRematch}
+                                    variant="outline"
+                                    className="p-5"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-rotate-cw-icon lucide-rotate-cw"><path d="M21 12a9 9 0 1 1-9-9c2.52 0 4.93 1 6.74 2.74L21 8" /><path d="M21 3v5h-5" /></svg>
+                                    REMATCH
+                                </Button>
+                                <Button
+                                    onClick={handleLeaveRoom}
+                                    className="p-5"
+                                >
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-house-icon lucide-house"><path d="M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8" /><path d="M3 10a2 2 0 0 1 .709-1.528l7-6a2 2 0 0 1 2.582 0l7 6A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" /></svg>
+                                    LEAVE ROOM
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                ) : (
+                    <>
+                        <div className="absolute top-5 left-1/2 -translate-x-1/2">{timeLeft}</div>
+                        <PhaserGame ref={phaserRef} sceneKey={selectedMap} roomId={roomId} />
+                    </>
                 )
             }
-            <div className="absolute top-5 left-1/2 -translate-x-1/2">{timeLeft}</div>
-            <PhaserGame ref={phaserRef} sceneKey={selectedMap} roomId={roomId} />
         </div>
     );
 };

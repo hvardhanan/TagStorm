@@ -6,15 +6,16 @@ export interface Player {
     y: number;
     isIt: boolean;
     isConnected: boolean;
+    isReady?: boolean;
 }
 
-export enum RoomStatus{
+export enum RoomStatus {
     LOBBY,
     PLAYING,
     CLOSED,
 }
 
-export interface Room{
+export interface Room {
     roomId: string;
     players: Player[];
     adminId: string | null;
@@ -24,7 +25,7 @@ export interface Room{
     endTime?: number | undefined;
 }
 
-export interface JoinRoomType{
+export interface JoinRoomType {
     roomId: string;
     playerId: string;
 }

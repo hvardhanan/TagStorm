@@ -1,7 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from "react";
 import { socketManager } from "@/socket/socketManager";
 
-const roomStateCache = {};
+export const roomStateCache = {};
 
 export function useRoom(roomId, playerId) {
     const [players, setPlayers] = useState([]);
@@ -13,7 +13,9 @@ export function useRoom(roomId, playerId) {
     const [endTime, setEndTime] = useState(
         () => roomStateCache[roomId]?.endTime ?? null
     );
-    const [loser, setLoser] = useState(null);
+    const [gameOverDetails, setGameOverDetails] = useState(
+        () => roomStateCache[roomId]?.gameOverDetails ?? null
+    );
 
     const roomIdRef = useRef(roomId);
     const playerIdRef = useRef(playerId);
@@ -43,12 +45,13 @@ export function useRoom(roomId, playerId) {
         roomStateCache[roomId] = {
             gameStarted,
             endTime,
+            gameOverDetails,
         };
-    }, [roomId, gameStarted, endTime]);
+    }, [roomId, gameStarted, endTime, gameOverDetails]);
 
-    const handleGameOver = useCallback(({ loserName }) => {
-        console.log('[useRoom] Game Over event received, loserName:', loserName);
-        setLoser(loserName);
+    const handleGameOver = useCallback(({ gameOverData }) => {
+        console.log('[useRoom] Game Over event received, loserName:', gameOverData.loserId);
+        setGameOverDetails(gameOverData);
     }, []);
 
 
@@ -96,6 +99,19 @@ export function useRoom(roomId, playerId) {
         socketManager.disconnect();
     }, []);
 
+    const resetRoomState = useCallback(() => {
+        setGameStarted(false);
+        setEndTime(null);
+        setGameOverDetails(null);
+        if (roomIdRef.current) {
+            roomStateCache[roomIdRef.current] = {
+                gameStarted: false,
+                endTime: null,
+                gameOverDetails: null,
+            };
+        }
+    }, []);
+
     return {
         players,
         isConnected,
@@ -103,8 +119,9 @@ export function useRoom(roomId, playerId) {
         error,
         gameStarted,
         endTime,
-        loser,
+        gameOverDetails,
         startGame,
         leaveRoom,
+        resetRoomState,
     };
 }

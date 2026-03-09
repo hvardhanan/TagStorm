@@ -48,7 +48,7 @@ const handleGameOver = (roomId: string) => {
 
         console.log(gameOverData)
 
-        io.to(roomId).emit("game-over", { loserName: gameOverData.loserId });
+        io.to(roomId).emit("game-over", { gameOverData: gameOverData });
 
         room.status = RoomStatus.LOBBY;
         room.endTime = undefined;
@@ -56,6 +56,7 @@ const handleGameOver = (roomId: string) => {
 
         room.players.forEach(p => {
             p.isIt = false;
+            p.isReady = false;
         });
 
         roomTimers.delete(roomId);
@@ -138,7 +139,6 @@ io.on("connection", (socket) => {
     socket.on("start-game", ({ roomId, playerId }) => {
         try {
             const room = roomManager.getRoom(roomId);
-            const players = room?.players;
             if (!room) {
                 socket.emit("error", { error: "Room does not exist" });
                 return;
@@ -149,15 +149,29 @@ io.on("connection", (socket) => {
                 return;
             }
             room.status = RoomStatus.PLAYING;
-            room.endTime = Date.now() + 120_000;
+            room.endTime = Date.now() + 10_000;
+
+            const nonReadyPlayers = room.players.filter(p => !p.isReady);
+            room.players = room.players.filter(p => p.isReady);
+
+            nonReadyPlayers.forEach(p => {
+                if (p.socketId) {
+                    const clientSocket = io.sockets.sockets.get(p.socketId);
+                    if (clientSocket) {
+                        clientSocket.leave(roomId);
+                    }
+                }
+            });
+
+            const players = room.players;
 
             const timer = setTimeout(() => {
                 handleGameOver(roomId)
-            }, 120_000)
+            }, 10_000)
 
             roomTimers.set(roomId, timer)
             let itSocketId = null;
-            if(players){
+            if (players) {
                 const randomIndex = Math.floor(Math.random() * players.length);
                 for (let i = 0; i < players.length; i++) {
                     players[i]!.isIt = (i === randomIndex);
@@ -183,6 +197,13 @@ io.on("connection", (socket) => {
         const itPlayer = room?.players.find(p => p.isIt)
         if (itPlayer) {
             socket.emit("tag-update", { itSocketId: itPlayer.socketId });
+        }
+    })
+
+    socket.on("request-room-state", ({ roomId }) => {
+        const room = roomManager.getRoom(roomId);
+        if (room) {
+            socket.emit("update-players", room);
         }
     })
 

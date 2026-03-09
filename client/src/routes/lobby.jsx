@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { useRoom } from '../hooks/useRoom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
+import { useRoom, roomStateCache } from '../hooks/useRoom';
 import { Lobby as LobbyComponent } from '../components/lobby/Lobby';
 import { MapSelection } from '../components/mapSelection/mapSelection';
 
 export const Lobby = () => {
     const navigate = useNavigate();
     const { roomId } = useParams();
+    const location = useLocation();
 
     const playerId = window.localStorage.getItem('playerId');
 
@@ -16,6 +17,7 @@ export const Lobby = () => {
         }
     }, [playerId, navigate]);
 
+    const isFromRematch = location.state?.fromRematch;
     const [selectedMap, setSelectedMap] = useState(() => {
         const stored = window.localStorage.getItem('selectedMap');
         return stored || null;
@@ -34,19 +36,30 @@ export const Lobby = () => {
         gameStarted,
         startGame,
         leaveRoom,
+        resetRoomState, // Add this
     } = useRoom(roomId, playerId);
+
+    // Reset game state when coming from rematch
+    useEffect(() => {
+        if (isFromRematch && roomId) {
+            // Call resetRoomState to also update useRoom state!
+            if (resetRoomState) {
+                resetRoomState();
+            }
+            // Clear the location state to allow future game starts
+            navigate(location.pathname, { replace: true, state: {} });
+        }
+    }, [isFromRematch, roomId, navigate, location.pathname, resetRoomState]);
 
     // navigate to the actual game route once the server tells us the
     // session has started. Without this the lobby route simply renders
     // nothing (the component returns undefined) and the user appears to
     // be stuck on a blank page.
     useEffect(() => {
-        if (gameStarted) {
-            // include a flag so the play route knows the redirect was
-            // intentional and doesn't immediately bounce us back
+        if (gameStarted && !isFromRematch) {
             navigate(`/room/${roomId}`, { state: { fromLobby: true } });
         }
-    }, [gameStarted, navigate, roomId]);
+    }, [gameStarted, navigate, roomId, isFromRematch]);
 
     const handleLeave = () => {
         window.localStorage.removeItem('selectedMap');
@@ -62,11 +75,13 @@ export const Lobby = () => {
         );
     }
 
+    const readyPlayers = players.filter(p => p.isReady !== false);
+
     if (!gameStarted) {
         return (
             <LobbyComponent
                 roomId={roomId}
-                players={players}
+                players={readyPlayers}
                 isAdmin={isAdmin}
                 isConnected={isConnected}
                 error={error}
@@ -75,8 +90,5 @@ export const Lobby = () => {
             />
         );
     }
-
-    // in the extremely unlikely case the effect above didn't fire we
-    // still return null rather than leaving the component undefined.
     return null;
 };

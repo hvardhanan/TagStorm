@@ -42,6 +42,7 @@ export class RoomManager {
                 playerExists.socketId = socketId;
                 playerExists.isConnected = true;
                 playerExists.isAdmin = room.adminId === playerId;
+                playerExists.isReady = true;
             }
         }
 
@@ -55,12 +56,14 @@ export class RoomManager {
                     y: 0,
                     isIt: false,
                     isConnected: true,
+                    isReady: true,
                 });
             }
             else {
                 playerExists.socketId = socketId;
                 playerExists.isConnected = true;
                 playerExists.isAdmin = room.adminId === playerId;
+                playerExists.isReady = true;
             }
         }
         return room;

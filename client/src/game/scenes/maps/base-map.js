@@ -46,11 +46,12 @@ export class BaseMap extends Scene {
         this.player = new Player(this, spawnX, spawnY);
         this.itPointer = this.add.graphics();
         this.itPointer.fillStyle(0xff0000, 1);
-        this.itPointer.fillTriangle(-8, 0, 8, 0, 0, 10); 
+        this.itPointer.fillTriangle(-8, 0, 8, 0, 0, 10);
         this.itPointer.setDepth(100);
         this.itPointer.setVisible(false);
-        this.lastSentX = Math.round(this.player.sprite.x);
-        this.lastSentY = Math.round(this.player.sprite.y);
+        this.lastSentX = null;
+        this.lastSentY = null;
+        this._lastPositionUpdateTime = 0;
         collisionLayers.forEach(layer => {
             this.physics.add.collider(this.player.sprite, layer);
         });
@@ -71,7 +72,11 @@ export class BaseMap extends Scene {
             this._setupSocketListeners();
             // Request current "it" status since tag-update may have fired before scene loaded
             socketManager.emit("request-tag-status", { roomId: this.roomId });
+            socketManager.emit("request-room-state", { roomId: this.roomId });
         }
+
+        this.events.once("shutdown", this.shutdown, this);
+        this.events.once("destroy", this.shutdown, this);
     }
 
     _setupSocketListeners() {
@@ -161,6 +166,13 @@ export class BaseMap extends Scene {
                     this.remotePlayers.delete(sid);
                 }
             }
+
+            for (const p of room.players) {
+                if (p.socketId === socketManager.id) continue;
+                if (!this.remotePlayers.has(p.socketId)) {
+                    this._onPlayerMoved({ socketId: p.socketId, x: p.x, y: p.y });
+                }
+            }
         };
 
         // When the server tells us who is "it", update tints
@@ -207,7 +219,7 @@ export class BaseMap extends Scene {
         if (!this._lastPositionUpdateTime) {
             this._lastPositionUpdateTime = now;
         }
-        
+
         if (now - this._lastPositionUpdateTime < 100) return;
 
         const x = Math.round(this.player.sprite.x);
@@ -251,7 +263,7 @@ export class BaseMap extends Scene {
 
         if (itSprite && itSprite.active) {
             this.itPointer.setVisible(true);
-            const bob = Math.sin(this.time.now / 200) * 5; 
+            const bob = Math.sin(this.time.now / 200) * 5;
             this.itPointer.x = itSprite.x;
             this.itPointer.y = itSprite.y - 30 + bob;
         } else {
@@ -260,6 +272,9 @@ export class BaseMap extends Scene {
     }
 
     shutdown() {
+        if (this._hasShutdown) return;
+        this._hasShutdown = true;
+
         socketManager.off("player-moved", this._onPlayerMoved);
         socketManager.off("update-players", this._onPlayersUpdated);
         socketManager.off("tag-update", this._onTagUpdate);
